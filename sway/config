@@ -1,0 +1,168 @@
+### ~/.config/sway/config
+### Ported from your i3 config (Xubuntu) to Sway (Wayland)
+
+set $mod Mod1
+set $wndw Mod4
+
+font pango:monospace 8
+
+# --- Apps you can swap ---
+set $term foot
+set $menu rofi -show drun -show-icons
+set $winmenu rofi -show window
+
+# Start XDG autostart entries
+exec_always dex --autostart --environment sway
+
+# Notifications (Wayland-native)
+exec_always mako
+
+# --- Screen lock / idle (Wayland replacement for xss-lock + i3lock) ---
+# Locks after 10 min idle; also locks before sleep.
+# Tweak timeouts as you like.
+exec_always swayidle -w \
+  timeout 600 'swaylock -f' \
+  before-sleep 'swaylock -f' \
+  lock 'swaylock -f'
+
+# Pol-kit auth
+exec_always /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+
+# Volume keys (same as i3)
+set $refresh_i3status killall -SIGUSR1 i3status
+bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
+bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
+bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
+bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+
+# Mouse+$mod drags floating (and tiling if tiling_drag enabled)
+floating_modifier $mod
+
+# Terminal
+bindsym $mod+Return exec $term
+
+# Kill focused window
+bindsym $mod+Shift+q kill
+
+# Launchers
+bindsym $mod+d exec $winmenu
+bindsym $wndw+d exec $menu
+bindsym $mod+$wndw+d exec dmenu_run   # (works via XWayland if you keep dmenu installed)
+
+# "Settings manager" (xfce4-settings-manager is X11/DE-specific)
+# Pick a Wayland-friendly replacement you like; examples:
+bindsym $wndw+s exec nwg-look
+# bindsym $wndw+s exec wdisplays
+# For now keep your original (will run under XWayland if installed):
+
+# Classic Alt-Tab-like behavior
+focus_wrapping workspace
+
+bindsym $mod+Shift+Tab focus left
+bindsym $mod+Tab focus right
+bindsym $mod+Control+Shift+Tab workspace prev
+bindsym $mod+Control+Tab workspace next
+
+# Focus (your arrows)
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+
+# Move focused window (your arrows)
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# Splits
+bindsym $mod+h split h
+bindsym $mod+v split v
+
+# Fullscreen
+bindsym $mod+f fullscreen toggle
+
+# Layouts
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+
+# Floating
+bindsym $mod+Shift+space floating toggle
+
+# Parent focus
+bindsym $mod+a focus parent
+
+# Workspaces
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+set $ws6 "6"
+set $ws7 "7"
+set $ws8 "8"
+set $ws9 "9"
+set $ws10 "10"
+
+bindsym $mod+1 workspace number $ws1
+bindsym $mod+2 workspace number $ws2
+bindsym $mod+3 workspace number $ws3
+bindsym $mod+4 workspace number $ws4
+bindsym $mod+5 workspace number $ws5
+bindsym $mod+6 workspace number $ws6
+bindsym $mod+7 workspace number $ws7
+bindsym $mod+8 workspace number $ws8
+bindsym $mod+9 workspace number $ws9
+bindsym $mod+0 workspace number $ws10
+
+bindsym $mod+Shift+1 move container to workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10
+
+bindsym $mod+Control+Shift+Right move container to workspace next; workspace next
+bindsym $mod+Control+Shift+Left  move container to workspace prev; workspace prev
+
+# Reload config
+bindsym $mod+Shift+c reload
+
+# i3 "restart" doesn’t exist the same way in Sway; reload is the usual workflow
+bindsym $mod+Shift+r reload
+
+# Exit prompt (i3-nagbar -> swaynag)
+bindsym $mod+Shift+e exec swaynag -t warning -m "Exit Sway?" -B "Yes, exit Sway" "swaymsg exit"
+
+# Resize mode (same)
+mode "resize" {
+    bindsym j resize shrink width 10 px or 10 ppt
+    bindsym k resize grow height 10 px or 10 ppt
+    bindsym l resize shrink height 10 px or 10 ppt
+    bindsym semicolon resize grow width 10 px or 10 ppt
+
+    bindsym Left resize shrink width 10 px or 10 ppt
+    bindsym Down resize grow height 10 px or 10 ppt
+    bindsym Up resize shrink height 10 px or 10 ppt
+    bindsym Right resize grow width 10 px or 10 ppt
+
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# --- Bar ---
+# Option 1 (minimal): keep swaybar + i3status (your original behavior)
+bar {
+    status_command i3status
+}
+
+# Option 2 (recommended if you want tray for nm-applet, etc.):
+# bar {
+#     swaybar_command waybar
+# }
+
