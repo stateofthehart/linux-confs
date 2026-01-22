@@ -1,0 +1,66 @@
+* {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 12px;
+}
+
+window#waybar {
+  background: rgba(10, 10, 10, 0.92);
+  color: #e6e6e6;
+}
+
+/* Workspace buttons */
+#workspaces button {
+  padding: 0 8px;
+  margin: 4px 2px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: #cfcfcf;
+}
+#workspaces button.focused {
+  background: rgba(95,135,255,0.25);
+  border: 1px solid rgba(95,135,255,0.55);
+  color: #ffffff;
+}
+#workspaces button.urgent {
+  background: rgba(255,95,95,0.25);
+  border: 1px solid rgba(255,95,95,0.6);
+  color: #ffffff;
+}
+
+/* Common “pill” styling */
+#clock, #custom-cpu, #memory, #custom-disk, #temperature, #network, #battery,
+#pulseaudio, #backlight, #custom-ips, #custom-gpu, #tray {
+  padding: 0 10px;
+  margin: 6px 4px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* i3status-like colored accents (left border) */
+#clock       { border-left: 3px solid rgba(95,175,255,0.95); }  /* blue */
+#custom-cpu  { border-left: 3px solid rgba(255,215,95,0.95); }  /* amber */
+#memory      { border-left: 3px solid rgba(175,135,255,0.95); } /* purple */
+#custom-disk { border-left: 3px solid rgba(95,255,135,0.95); }  /* green */
+#temperature { border-left: 3px solid rgba(255,95,95,0.95); }   /* red */
+#custom-gpu  { border-left: 3px solid rgba(45,226,230,0.95); }  /* cyan */
+#backlight   { border-left: 3px solid rgba(255,223,135,0.95); } /* soft yellow */
+#network     { border-left: 3px solid rgba(135,199,255,0.95); } /* light blue */
+#battery     { border-left: 3px solid rgba(135,255,175,0.95); } /* mint */
+#pulseaudio  { border-left: 3px solid rgba(255,135,215,0.95); } /* pink */
+
+/* Optional: make critical states stand out */
+#temperature.critical {
+  background: rgba(255,95,95,0.22);
+  border: 1px solid rgba(255,95,95,0.55);
+}
+
+#battery.warning {
+  background: rgba(255,223,135,0.18);
+  border: 1px solid rgba(255,223,135,0.45);
+}
+#battery.critical {
+  background: rgba(255,95,95,0.22);
+  border: 1px solid rgba(255,95,95,0.55);
+}
+

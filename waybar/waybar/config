@@ -1,0 +1,85 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 32,
+
+  "modules-left": [
+    "sway/workspaces", 
+    "sway/mode", 
+    "custom/ips",
+    "backlight",
+    "pulseaudio"
+  ],
+  "modules-center": ["clock"],
+  "modules-right": [
+    "custom/cpu",
+    "memory",
+    "temperature",
+    "custom/gpu",
+    "network",
+    "battery",
+    "custom/disk",
+    "tray"
+  ],
+
+  "sway/workspaces": {
+    "disable-scroll": false,
+    "all-outputs": true
+  },
+
+  "clock": {
+    "format": "{:%a %b %d  %H:%M:%S}"
+  },
+
+  "cpu": { "format": "CPU {usage}%" },
+  "memory": { "format": "RAM {used:0.1f}G/{total:0.1f}G" },
+
+  "backlight": {
+    "format": "BRI {percent}%"
+  },
+
+  "temperature": {
+    "hwmon-path": "/sys/class/hwmon/hwmon5/temp1_input",
+    "format": "CPU {temperatureC}°C",
+    "critical-threshold": 85,
+    "interval": 2
+  },
+
+
+  "network": {
+    "format-wifi": "WiFi {signalStrength}%",
+    "format-ethernet": "Eth",
+    "format-disconnected": "NoNet"
+  },
+
+  "battery": { "format": "BAT {capacity}%" },
+
+  "pulseaudio": {
+    "format": "VOL {volume}%",
+    "format-muted": "MUTED"
+  },
+
+  "custom/ips": {
+    "exec": "~/.config/waybar/scripts/ips.sh",
+    "interval": 3,
+    "return-type": "text"
+  },
+
+  "custom/cpu": {
+    "exec": "~/.config/waybar/scripts/cpu.sh",
+    "interval": 1,
+    "return-type": "text"
+  },
+
+  "custom/disk": {
+    "exec": "~/.config/waybar/scripts/disk.sh",
+    "interval": 15,
+    "return-type": "text"
+  },
+
+  "custom/gpu": {
+    "exec": "~/.config/waybar/scripts/gpu.sh",
+    "interval": 1,
+    "return-type": "text"
+  }
+}

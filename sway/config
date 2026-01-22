@@ -28,12 +28,26 @@ exec_always swayidle -w \
 # Pol-kit auth
 exec_always /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 
+# NetworkManager tray applet
+exec_always --no-startup-id nm-applet --indicator
+
+# Blueman Bluetooth tray applet
+exec_always --no-startup-id blueman-applet
+
+exec_always --no-startup-id swayosd-server
+exec_always --no-startup-id swayosd
+
 # Volume keys (same as i3)
 set $refresh_i3status killall -SIGUSR1 i3status
 bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
 bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
 bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
 bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+
+# Brightness (adjust + show OSD)
+bindsym XF86MonBrightnessUp exec --no-startup-id sh -c 'brightnessctl set +10%'
+bindsym XF86MonBrightnessDown exec --no-startup-id sh -c 'brightnessctl set 10%-'
+
 
 # Mouse+$mod drags floating (and tiling if tiling_drag enabled)
 floating_modifier $mod
@@ -158,7 +172,7 @@ bindsym $mod+r mode "resize"
 # --- Bar ---
 # Option 1 (minimal): keep swaybar + i3status (your original behavior)
 bar {
-    status_command i3status
+    swaybar_command waybar
 }
 
 # Option 2 (recommended if you want tray for nm-applet, etc.):
