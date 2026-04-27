@@ -1,66 +1,255 @@
+/* ============================================
+   SWAY DUAL-BAR THEME - Developer/Hacker Style
+   Top: System monitoring with accent colors
+   Bottom: KDE-inspired control bar
+   ============================================ */
+
+/* Global font settings */
 * {
-  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-family: "JetBrainsMono Nerd Font", "Font Awesome 6 Free", monospace;
   font-size: 12px;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
 }
 
-window#waybar {
-  background: rgba(10, 10, 10, 0.92);
-  color: #e6e6e6;
+/* ============================================
+   TOP BAR - System Monitor
+   ============================================ */
+window#waybar.top {
+  background: rgba(13, 17, 23, 0.95);
+  color: #c9d1d9;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.8);
 }
 
-/* Workspace buttons */
-#workspaces button {
-  padding: 0 8px;
-  margin: 4px 2px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.04);
-  color: #cfcfcf;
-}
-#workspaces button.focused {
-  background: rgba(95,135,255,0.25);
-  border: 1px solid rgba(95,135,255,0.55);
-  color: #ffffff;
-}
-#workspaces button.urgent {
-  background: rgba(255,95,95,0.25);
-  border: 1px solid rgba(255,95,95,0.6);
-  color: #ffffff;
+/* Top bar workspace buttons - with window count dots */
+window#waybar.top #workspaces {
+  margin: 4px;
 }
 
-/* Common “pill” styling */
-#clock, #custom-cpu, #memory, #custom-disk, #temperature, #network, #battery,
-#pulseaudio, #backlight, #custom-ips, #custom-gpu, #tray {
+window#waybar.top #workspaces button {
   padding: 0 10px;
-  margin: 6px 4px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
+  margin: 2px 4px;
+  border-radius: 6px;
+  background: rgba(22, 27, 34, 0.8);
+  color: #8b949e;
+  border: 1px solid rgba(48, 54, 61, 0.5);
+  min-width: 30px;
 }
 
-/* i3status-like colored accents (left border) */
-#clock       { border-left: 3px solid rgba(95,175,255,0.95); }  /* blue */
-#custom-cpu  { border-left: 3px solid rgba(255,215,95,0.95); }  /* amber */
-#memory      { border-left: 3px solid rgba(175,135,255,0.95); } /* purple */
-#custom-disk { border-left: 3px solid rgba(95,255,135,0.95); }  /* green */
-#temperature { border-left: 3px solid rgba(255,95,95,0.95); }   /* red */
-#custom-gpu  { border-left: 3px solid rgba(45,226,230,0.95); }  /* cyan */
-#backlight   { border-left: 3px solid rgba(255,223,135,0.95); } /* soft yellow */
-#network     { border-left: 3px solid rgba(135,199,255,0.95); } /* light blue */
-#battery     { border-left: 3px solid rgba(135,255,175,0.95); } /* mint */
-#pulseaudio  { border-left: 3px solid rgba(255,135,215,0.95); } /* pink */
-
-/* Optional: make critical states stand out */
-#temperature.critical {
-  background: rgba(255,95,95,0.22);
-  border: 1px solid rgba(255,95,95,0.55);
+window#waybar.top #workspaces button.focused {
+  background: rgba(95, 135, 255, 0.2);
+  border: 1px solid rgba(95, 135, 255, 0.6);
+  color: #ffffff;
 }
 
-#battery.warning {
-  background: rgba(255,223,135,0.18);
-  border: 1px solid rgba(255,223,135,0.45);
-}
-#battery.critical {
-  background: rgba(255,95,95,0.22);
-  border: 1px solid rgba(255,95,95,0.55);
+window#waybar.top #workspaces button.urgent {
+  background: rgba(255, 95, 95, 0.25);
+  border: 1px solid rgba(255, 95, 95, 0.6);
+  color: #ffffff;
 }
 
+window#waybar.top #workspaces button:hover {
+  background: rgba(95, 135, 255, 0.15);
+  border: 1px solid rgba(95, 135, 255, 0.4);
+}
+
+/* Window title in top bar */
+window#waybar.top #window {
+  color: #8b949e;
+  padding: 0 15px;
+  font-style: italic;
+}
+
+/* Mode indicator */
+window#waybar.top #mode {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  padding: 0 15px;
+  margin: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+/* Top bar system modules */
+window#waybar.top #custom-cpu,
+window#waybar.top #memory,
+window#waybar.top #custom-disk,
+window#waybar.top #custom-gpu,
+window#waybar.top #custom-network-speed {
+  padding: 0 12px;
+  margin: 6px 3px;
+  border-radius: 8px;
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+/* Top bar accent colors (left border) */
+window#waybar.top #custom-cpu           { border-left: 3px solid rgba(255, 215, 95, 0.9); }
+window#waybar.top #memory               { border-left: 3px solid rgba(175, 135, 255, 0.9); }
+window#waybar.top #custom-disk          { border-left: 3px solid rgba(95, 255, 135, 0.9); }
+window#waybar.top #custom-gpu           { border-left: 3px solid rgba(45, 226, 230, 0.9); }
+window#waybar.top #custom-network-speed { border-left: 3px solid rgba(255, 165, 0, 0.9); }
+
+/* ============================================
+   BOTTOM BAR - KDE-Inspired Control Center
+   ============================================ */
+window#waybar.bottom {
+  background: rgba(30, 30, 46, 0.98);
+  color: #cdd6f4;
+  border-top: 1px solid rgba(69, 71, 90, 0.8);
+}
+
+/* Launcher button - CachyOS logo style */
+window#waybar.bottom #custom-launcher {
+  padding: 0 16px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  background: rgba(137, 180, 250, 0.15);
+  color: #89b4fa;
+  font-size: 16px;
+  border: 1px solid rgba(137, 180, 250, 0.3);
+}
+
+window#waybar.bottom #custom-launcher:hover {
+  background: rgba(137, 180, 250, 0.3);
+  border: 1px solid rgba(137, 180, 250, 0.5);
+}
+
+/* Center clock - prominent */
+window#waybar.bottom #clock {
+  padding: 0 20px;
+  margin: 4px;
+  border-radius: 8px;
+  background: rgba(49, 50, 68, 0.8);
+  color: #f5c2e7;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1px solid rgba(245, 194, 231, 0.3);
+}
+
+/* Bottom bar control modules - KDE style */
+window#waybar.bottom #backlight,
+window#waybar.bottom #custom-volume,
+window#waybar.bottom #custom-network,
+window#waybar.bottom #custom-bluetooth,
+window#waybar.bottom #battery {
+  padding: 0 14px;
+  margin: 4px 3px;
+  border-radius: 8px;
+  background: rgba(49, 50, 68, 0.7);
+  border: 1px solid rgba(69, 71, 90, 0.5);
+  color: #cdd6f4;
+}
+
+window#waybar.bottom #backlight:hover,
+window#waybar.bottom #custom-volume:hover,
+window#waybar.bottom #custom-network:hover,
+window#waybar.bottom #custom-bluetooth:hover,
+window#waybar.bottom #battery:hover {
+  background: rgba(69, 71, 90, 0.8);
+  border: 1px solid rgba(137, 180, 250, 0.5);
+}
+
+/* Module specific colors */
+window#waybar.bottom #backlight         { color: #f9e2af; }
+window#waybar.bottom #custom-volume    { color: #89b4fa; }
+window#waybar.bottom #custom-network    { color: #a6e3a1; }
+window#waybar.bottom #custom-bluetooth  { color: #89dceb; }
+window#waybar.bottom #battery           { color: #f38ba8; }
+
+/* Media controls - no background, same color */
+window#waybar.bottom #custom-media-prev,
+window#waybar.bottom #custom-media-playpause,
+window#waybar.bottom #custom-media-next,
+window#waybar.bottom #custom-media-info {
+  color: #fab387;
+  background: transparent;
+  border: none;
+  padding: 0 6px;
+  margin: 4px 2px;
+}
+
+window#waybar.bottom #custom-media-prev:hover,
+window#waybar.bottom #custom-media-playpause:hover,
+window#waybar.bottom #custom-media-next:hover {
+  color: #fab387;
+  background: rgba(250, 179, 135, 0.2);
+  border-radius: 4px;
+}
+
+window#waybar.bottom #custom-media-info {
+  margin-left: 8px;
+  font-weight: 500;
+  min-width: 100px;
+}
+
+/* Battery states */
+window#waybar.bottom #battery.charging,
+window#waybar.bottom #battery.plugged {
+  color: #a6e3a1;
+  background: rgba(166, 227, 161, 0.15);
+}
+
+window#waybar.bottom #battery.warning {
+  color: #f9e2af;
+  background: rgba(249, 226, 175, 0.15);
+}
+
+window#waybar.bottom #battery.critical {
+  color: #f38ba8;
+  background: rgba(243, 139, 168, 0.15);
+  animation: blink 1s linear infinite;
+}
+
+/* Network states */
+window#waybar.bottom #custom-network.disconnected {
+  color: #6c7086;
+}
+
+/* Bluetooth states */
+window#waybar.bottom #custom-bluetooth.connected {
+  color: #89dceb;
+  background: rgba(137, 220, 235, 0.15);
+}
+
+/* System Tray - for Slack, 1Password, etc. */
+window#waybar.bottom #tray {
+  padding: 0 10px;
+  margin: 4px;
+  background: rgba(49, 50, 68, 0.5);
+  border-radius: 8px;
+}
+
+window#waybar.bottom #tray > .passive {
+  -gtk-icon-effect: dim;
+}
+
+window#waybar.bottom #tray > .needs-attention {
+  -gtk-icon-effect: highlight;
+  background: rgba(243, 139, 168, 0.3);
+  border-radius: 6px;
+}
+
+/* Animation for critical states */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Tooltip styling - hacker terminal style */
+tooltip {
+  background: rgba(13, 17, 23, 0.98);
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+tooltip label {
+  color: #c9d1d9;
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 11px;
+}

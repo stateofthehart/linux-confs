@@ -1,0 +1,127 @@
+{
+  "name": "bottom",
+  "layer": "top",
+  "position": "bottom",
+  "height": 34,
+  "spacing": 4,
+
+  "modules-left": [
+    "custom/launcher",
+    "custom/media-prev",
+    "custom/media-playpause", 
+    "custom/media-next",
+    "custom/media-info"
+  ],
+  "modules-center": [
+    "clock"
+  ],
+  "modules-right": [
+    "backlight",
+    "custom/volume",
+    "custom/network",
+    "custom/bluetooth",
+    "battery",
+    "tray"
+  ],
+
+  "custom/launcher": {
+    "format": "󰣇",
+    "tooltip": false,
+    "on-click": "rofi -show drun -show-icons"
+  },
+
+  "clock": {
+    "format": "{:%a %b %d  %H:%M}",
+    "format-alt": "{:%Y-%m-%d}",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt>{calendar}</tt>",
+    "on-click": "toggle_format"
+  },
+
+  "backlight": {
+    "format": "{icon} {percent}%",
+    "format-icons": ["󰃚", "󰃛", "󰃜", "󰃝", "󰃞", "󰃟", "󰃠"],
+    "on-scroll-up": "brightnessctl set +5%",
+    "on-scroll-down": "brightnessctl set 5%-",
+    "tooltip": false,
+    "min-length": 6
+  },
+
+  "custom/volume": {
+    "exec": "exec /home/ethan/.config/waybar/scripts/volume.sh",
+    "interval": 1,
+    "return-type": "text",
+    "on-click": "/home/ethan/.config/waybar/scripts/volume.sh toggle",
+    "on-scroll-up": "/home/ethan/.config/waybar/scripts/volume.sh up",
+    "on-scroll-down": "/home/ethan/.config/waybar/scripts/volume.sh down",
+    "tooltip": false
+  },
+
+  "custom/network": {
+    "exec": "/home/ethan/.config/waybar/scripts/network-tooltip.sh",
+    "interval": 5,
+    "return-type": "json",
+    "format": "{text}",
+    "on-click": "nm-connection-editor"
+  },
+
+  "custom/bluetooth": {
+    "exec": "/home/ethan/.config/waybar/scripts/bluetooth-status.sh",
+    "interval": 5,
+    "return-type": "json",
+    "format": "{text}",
+    "on-click": "blueman-manager",
+    "tooltip": false
+  },
+
+  "battery": {
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": "󰂄 {capacity}%",
+    "format-alt": "{time} {icon}",
+    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "tooltip": false
+  },
+
+
+
+  "custom/media-prev": {
+    "exec": "/home/ethan/.config/waybar/scripts/media-prev.sh",
+    "interval": "once",
+    "return-type": "text",
+    "on-click": "playerctl -p playerctld,spotify previous",
+    "tooltip": false
+  },
+
+  "custom/media-playpause": {
+    "exec": "/home/ethan/.config/waybar/scripts/media-playpause.sh",
+    "interval": 1,
+    "return-type": "text",
+    "on-click": "playerctl -p playerctld,spotify play-pause",
+    "tooltip": false
+  },
+
+  "custom/media-next": {
+    "exec": "/home/ethan/.config/waybar/scripts/media-next.sh",
+    "interval": "once",
+    "return-type": "text",
+    "on-click": "playerctl -p playerctld,spotify next",
+    "tooltip": false
+  },
+
+  "custom/media-info": {
+    "exec": "/home/ethan/.config/waybar/scripts/media-info.sh",
+    "interval": 1,
+    "return-type": "text",
+    "tooltip": false,
+    "hide-empty-text": true
+  },
+
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  }
+}

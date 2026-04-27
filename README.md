@@ -44,8 +44,13 @@ The fix lives in two files:
   line; the systemd user unit `gnome-keyring-daemon.socket` socket-
   activates it on demand instead.
 
-## Known drift
+## Keeping the repo in sync with `~/.config`
 
-The `waybar/` and `foot/` directories in this repo predate recent local
-edits and may be missing some scripts/themes present on the live machine.
-Sync them back when you next touch them.
+After `install.sh`, the home-side paths are symlinks into this repo, so
+edits land here automatically. Two exceptions worth knowing:
+
+- **First-time edits** on a fresh machine before `install.sh` runs:
+  changes go to `~/.config/...` first; copy back into the repo manually.
+- **`waybar/` and `foot/` are directory symlinks**, so adding new
+  scripts/themes inside them shows up in `git status` automatically. New
+  top-level apps need a new repo dir + a new `link` line in `install.sh`.
