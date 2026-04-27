@@ -17,36 +17,50 @@ exec_always dex --autostart --environment sway
 # Notifications (Wayland-native)
 exec_always mako
 
-# --- Screen lock / idle (Wayland replacement for xss-lock + i3lock) ---
-# Locks after 10 min idle; also locks before sleep.
-# Tweak timeouts as you like.
+# --- Screen lock / idle ---
+# Locks after 10 min idle
 exec_always swayidle -w \
-  timeout 600 'swaylock -f' \
-  before-sleep 'swaylock -f' \
-  lock 'swaylock -f'
+  timeout 600 '~/.config/sway/scripts/lock.sh'
 
 # Pol-kit auth
 exec_always /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 
-# NetworkManager tray applet
-exec_always --no-startup-id nm-applet --indicator
+exec_always dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway SWAYSOCK DBUS_SESSION_BUS_ADDRESS
 
-# Blueman Bluetooth tray applet
-exec_always --no-startup-id blueman-applet
+# gnome-keyring is started by systemd --user via gnome-keyring-daemon.socket
+
+# Network and Bluetooth are handled by waybar modules (custom/network and custom/bluetooth)
+# No need for nm-applet or blueman-applet in tray
 
 exec_always --no-startup-id swayosd-server
 exec_always --no-startup-id swayosd
 
-# Volume keys (same as i3)
+input type:touchpad {
+    tap enabled
+    dwt enabled              # disable-while-typing
+    natural_scroll enabled   # optional
+    pointer_accel 0.3        # optional tuning
+}
+
+# Volume keys (capped at 100% using wpctl -l 1.0)
 set $refresh_i3status killall -SIGUSR1 i3status
-bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
-bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
-bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
-bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+bindsym XF86AudioRaiseVolume exec ~/.config/waybar/scripts/volume.sh up && $refresh_i3status
+bindsym XF86AudioLowerVolume exec ~/.config/waybar/scripts/volume.sh down && $refresh_i3status
+bindsym XF86AudioMute exec ~/.config/waybar/scripts/volume.sh toggle && $refresh_i3status
+bindsym XF86AudioMicMute exec wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && $refresh_i3status
 
 # Brightness (adjust + show OSD)
 bindsym XF86MonBrightnessUp exec --no-startup-id sh -c 'brightnessctl set +10%'
 bindsym XF86MonBrightnessDown exec --no-startup-id sh -c 'brightnessctl set 10%-'
+
+# Screenshots
+set $screenshot_dir ~/Pictures/Screenshots
+bindsym --release Print exec mkdir -p $screenshot_dir && grim $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindsym --release Shift+Print exec mkdir -p $screenshot_dir && grim -g "$(slurp)" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindsym --release Ctrl+Print exec mkdir -p $screenshot_dir && grim -g "$(swaymsg -t get_tree | jq -j '.. | select(.type?) | select(.focused).rect | "\(.x),\(.y) \(.width)x\(.height)"')" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+
+# Lock screen
+bindsym $wndw+l exec ~/.config/sway/scripts/lock.sh
 
 
 # Mouse+$mod drags floating (and tiling if tiling_drag enabled)
@@ -169,14 +183,9 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
-# --- Bar ---
-# Option 1 (minimal): keep swaybar + i3status (your original behavior)
-bar {
-    swaybar_command waybar
-}
-
-# Option 2 (recommended if you want tray for nm-applet, etc.):
-# bar {
-#     swaybar_command waybar
-# }
+# --- Dual Bar Setup ---
+# Top bar: System monitoring (workspaces, cpu, memory, gpu, temps, disk)
+# Bottom bar: Controls (wifi, bluetooth, brightness, volume, battery, clock, tray)
+exec_always waybar --config ~/.config/waybar/config-top
+exec_always waybar --config ~/.config/waybar/config-bottom
 
