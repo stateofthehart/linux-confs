@@ -1,0 +1,61 @@
+# ~/.xonshrc — translated from ~/.bashrc
+# Xonsh uses Python syntax; this is NOT a copy of .bashrc.
+
+# PATH is a Python list in xonsh, not a colon-separated string.
+$PATH = [
+    $HOME + "/.local/bin",
+    $HOME + "/bin",
+    "/usr/local/sbin",
+    "/usr/local/bin",
+    "/usr/sbin",
+    "/usr/bin",
+    "/sbin",
+    "/bin",
+]
+
+# History
+$XONSH_HISTORY_SIZE = (10000, "commands")
+$HISTCONTROL = "ignoredups,ignoreerr"
+
+# Prompt: starship via xontrib-prompt-starship.
+# Customize via ~/.config/starship.toml (see https://starship.rs/presets/).
+xontrib load prompt_starship
+
+# Aliases — eza replaces ls (icons + git status column)
+aliases["ls"] = "eza --icons --git --group-directories-first"
+aliases["ll"] = "eza --icons --git --group-directories-first -lh"
+aliases["la"] = "eza --icons --git --group-directories-first -lah"
+def _lt(args):
+    # lt          → depth 2
+    # lt 4        → depth 4
+    # lt 4 ~/src  → depth 4, in ~/src
+    # any other eza flags pass through; default depth 2 if no number given.
+    depth = "2"
+    rest = list(args)
+    if rest and rest[0].isdigit():
+        depth = rest.pop(0)
+    $[eza --icons --git --tree --level=@(depth) @(rest)]
+aliases["lt"] = _lt
+aliases["grep"] = "grep --color=auto"
+aliases[".."] = "cd .."
+aliases["..."] = "cd ../.."
+
+# Drop-in replacements for interactive use (scripts unaffected).
+# Not aliasing du/ps — dust and procs have incompatible CLIs.
+aliases["top"] = "btop"
+aliases["htop"] = "btop"
+
+# Use bat as a colored pager for man pages.
+$MANROFFOPT = "-c"
+$GROFF_NO_SGR = "1"
+$MANPAGER = "sh -c 'col -bxp | bat -l man -p'"
+
+# zoxide — `z <partial>` jumps to "frecent" directories
+execx($(zoxide init xonsh), "exec", __xonsh__.ctx, filename="zoxide")
+
+# Kitty kittens — bare-name shortcuts.
+# (ssh is handled by ~/.local/bin/ssh — smart wrapper that picks kitten ssh
+#  when in kitty, plain ssh inside tmux.)
+aliases["kssh"] = "kitten ssh"
+aliases["icat"] = "kitten icat"
+aliases["unclaude"] = "claude --dangerously-skip-permissions"

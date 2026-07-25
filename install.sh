@@ -10,6 +10,7 @@ TS="$(date +%Y%m%d-%H%M%S)"
 # Required packages for the sway/waybar/foot stack and the keyring fix.
 # Tweak this list to taste.
 PACKAGES=(
+  # Sway / waybar / WM stack
   sway swaylock swayidle swaybg
   waybar mako foot
   dex swayosd
@@ -17,6 +18,18 @@ PACKAGES=(
   rofi grim slurp jq
   brightnessctl
   wireplumber pipewire-pulse
+
+  # Shells + prompt
+  bash xonsh starship python-pip
+
+  # Modern CLI replacements (eza/bat/fd/rg/zoxide/delta/btop/dust/procs)
+  bat eza fd ripgrep zoxide git-delta btop dust procs
+
+  # Multiplexer + fuzzy finder + remote shell
+  tmux fzf mosh
+
+  # Terminal + Nerd Font (workstation-only; harmless on servers)
+  kitty ttf-jetbrains-mono-nerd
 )
 
 require_pacman() {
@@ -59,11 +72,36 @@ link() {
 link_configs() {
   echo "==> Symlinking configs..."
   link "$REPO/home/.bash_profile"   "$HOME/.bash_profile"
+  link "$REPO/home/.bashrc"         "$HOME/.bashrc"
+  link "$REPO/home/.xonshrc"        "$HOME/.xonshrc"
   link "$REPO/sway/config"          "$HOME/.config/sway/config"
   link "$REPO/sway/scripts/lock.sh" "$HOME/.config/sway/scripts/lock.sh"
   link "$REPO/i3/config"            "$HOME/.config/i3/config"
   link "$REPO/foot/foot"            "$HOME/.config/foot"
   link "$REPO/waybar/waybar"        "$HOME/.config/waybar"
+}
+
+# Post-install steps that the package install + symlinks don't cover.
+post_install() {
+  echo "==> Post-install configuration..."
+
+  # xontrib bridges starship into xonsh (starship doesn't natively support xonsh).
+  if command -v xpip >/dev/null 2>&1; then
+    echo "  xpip: xontrib-prompt-starship"
+    xpip install --user --break-system-packages --quiet xontrib-prompt-starship || true
+  fi
+
+  # Wire git-delta in as the diff/log pager.
+  if command -v delta >/dev/null 2>&1; then
+    echo "  git: configuring delta as pager"
+    git config --global core.pager delta
+    git config --global interactive.diffFilter 'delta --color-only'
+    git config --global delta.navigate true
+    git config --global delta.line-numbers true
+    git config --global delta.side-by-side true
+    git config --global merge.conflictstyle diff3
+    git config --global diff.colorMoved default
+  fi
 }
 
 enable_user_services() {
@@ -78,6 +116,7 @@ main() {
   require_pacman
   install_packages
   link_configs
+  post_install
   enable_user_services
   cat <<EOF
 

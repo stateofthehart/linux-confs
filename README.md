@@ -8,12 +8,17 @@ persistence and SSH agent) work correctly under sway.
 
 ```
 home/.bash_profile        -> ~/.bash_profile
+home/.bashrc              -> ~/.bashrc
+home/.xonshrc             -> ~/.xonshrc
 sway/config               -> ~/.config/sway/config
 sway/scripts/lock.sh      -> ~/.config/sway/scripts/lock.sh
 i3/config                 -> ~/.config/i3/config
 foot/foot/                -> ~/.config/foot/   (whole dir)
 waybar/waybar/            -> ~/.config/waybar/ (whole dir)
 ```
+
+Plus post-install: installs `xontrib-prompt-starship` (for xonsh's starship prompt)
+and wires `delta` in as git's diff/log pager.
 
 ## Install on a fresh machine
 
@@ -25,6 +30,41 @@ cd ~/linux-confs
 
 `install.sh` is idempotent. Existing non-symlink targets in `$HOME` are
 backed up to `<target>.bak.<timestamp>` before being replaced.
+
+## Provision a remote shell
+
+`provision-host` uploads `cli-install.sh` to remote hosts and installs the
+managed shell block:
+
+```
+./provision-host bmc-api
+./provision-host --xonsh bmc-api
+```
+
+Nerd Font icons are a rendering dependency of the terminal you are looking at,
+not just a package on the remote host. `provision-host` enables Starship and
+writes `eza --icons=always` by default so remote interactive shells keep file
+icons. If a client terminal renders those glyphs as placeholders, re-run with
+`--no-icons`.
+
+To let `eza` decide when to display icons:
+
+```
+./provision-host --icons=auto bmc-api
+```
+
+For plain output:
+
+```
+./provision-host --no-icons --no-starship bmc-api
+```
+
+The provisioned Bash block also forces a UTF-8 locale when SSH starts with an
+ASCII locale. This matters for tmux: tmux decides glyph handling from the
+locale/client it starts with, so Nerd Font icons can render outside tmux but
+break inside tmux if the server was born under `C`/ASCII. The managed tmux
+block sets `tmux-256color`, propagates locale variables into panes, and the
+interactive shell aliases `tmux` to `tmux -u`.
 
 ## What the keyring fix does
 

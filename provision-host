@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# provision-host — ship cli-install.sh to one or more remote hosts and run it.
+#
+# Usage:
+#   provision-host HOST [HOST...]                         # bash setup on each
+#   provision-host --xonsh HOST [HOST...]                 # xonsh setup on each
+#   provision-host --icons=always --starship=always HOST  # force Nerd Font UI
+#   provision-host --no-icons --no-starship HOST          # plain prompt/listing
+#
+# Idempotent: re-running updates the rc block in place.
+# Uses scp + ssh -tt so sudo can prompt for a password if NOPASSWD isn't set.
+
+set -euo pipefail
+
+usage() {
+    sed -n '2,11p' "$0" >&2
+}
+
+SHELL_FLAG="--bash"
+ICON_FLAG="--icons=always"
+STARSHIP_FLAG="--starship=always"
+EXTRA_FLAGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --bash|--xonsh)
+            SHELL_FLAG="$1"
+            shift
+            ;;
+        --icons=auto|--icons=always|--icons=never)
+            ICON_FLAG="$1"
+            shift
+            ;;
+        --icons)
+            ICON_FLAG="--icons=always"
+            shift
+            ;;
+        --no-icons)
+            ICON_FLAG="--icons=never"
+            shift
+            ;;
+        --starship=auto|--starship=always|--starship=never)
+            STARSHIP_FLAG="$1"
+            shift
+            ;;
+        --starship)
+            STARSHIP_FLAG="--starship=always"
+            shift
+            ;;
+        --no-starship)
+            STARSHIP_FLAG="--starship=never"
+            shift
+            ;;
+        --no-install)
+            EXTRA_FLAGS+=("$1")
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            echo "unknown option: $1" >&2
+            usage
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+[[ $# -ge 1 ]] || { usage; exit 1; }
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+SCRIPT="$REPO/cli-install.sh"
+[[ -f "$SCRIPT" ]] || { echo "missing $SCRIPT (expected next to provision-host)" >&2; exit 1; }
+
+INSTALL_ARGS=("$SHELL_FLAG" "$ICON_FLAG" "$STARSHIP_FLAG" "${EXTRA_FLAGS[@]}")
+
+failed=()
+for host in "$@"; do
+    echo "==> $host"
+    echo "    shell=${SHELL_FLAG#--} icons=${ICON_FLAG#--icons=} starship=${STARSHIP_FLAG#--starship=}"
+    if scp -q "$SCRIPT" "$host:~/cli-install.sh" \
+        && ssh -tt "$host" bash '~/cli-install.sh' "${INSTALL_ARGS[@]}"; then
+        echo "    ok"
+    else
+        echo "    FAILED" >&2
+        failed+=("$host")
+    fi
+done
+
+if [[ ${#failed[@]} -gt 0 ]]; then
+    echo
+    echo "Failed: ${failed[*]}" >&2
+    exit 1
+fi
