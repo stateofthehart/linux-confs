@@ -17,3 +17,8 @@ Current hosts:
 - **phantom** — desktop (Ubuntu 24.04, sway 1.9, DisplayLink/evdi with a
   patched-wlroots wrapper). Uses static outputs; see the warnings inside
   `phantom/sway-outputs.conf`. Full porting notes: `../PORTING.md`.
+  `phantom/sway-displaylink` is a tracked reference copy of the launch
+  wrapper installed at `/usr/local/bin/sway-displaylink` on phantom (the ONE
+  place WLR_* belongs, incl. WLR_NO_HARDWARE_CURSORS=1 — evdi has no hardware
+  cursor plane, without it the pointer is invisible). If you edit the wrapper
+  on phantom, sync the copy here.

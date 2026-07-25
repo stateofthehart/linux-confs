@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Launch sway with DisplayLink (evdi) output support.
+#
+# Uses a patched libwlroots (DisplayLink_v2.patch) installed under
+# /opt/sway-displaylink, overriding the distro library for this process only.
+# The system /usr/lib/.../libwlroots.so.12 and the GNOME session are untouched.
+#
+# The patch makes wlroots fall back to a real GPU's render node when it opens an
+# evdi card (which has no render node of its own). Which GPU it picks is chosen
+# by WLR_EVDI_RENDER_DEVICE, which the patch matches against a hardcoded list of
+# /dev/dri/card0..card9 strings -- so it must be an exact literal path, and it
+# MUST be set: the patch defaults to index 0 (/dev/dri/card0), which on this
+# machine is an evdi card, and rendering would fail.
+#
+# Card numbers are not stable across boots (evdi probe order varies), so we
+# resolve them at launch time rather than hardcoding.
+
+set -u
+
+PREFIX=/opt/sway-displaylink
+LIBDIR="$PREFIX/lib/x86_64-linux-gnu"
+
+log() { echo "sway-displaylink: $*" >&2; }
+
+# Find a real (render-capable) GPU to render on, and collect the evdi cards.
+# amdgpu is preferred over nvidia: it is first-class in wlroots and needs no
+# proprietary-driver workarounds.
+render_card=""
+nvidia_card=""
+evdi_cards=()
+
+for dev in /sys/class/drm/card[0-9]; do
+    [ -e "$dev" ] || continue
+    card=$(basename "$dev")
+    [ -e "$dev/device/driver" ] || continue
+    driver=$(basename "$(readlink -f "$dev/device/driver")")
+
+    case "$driver" in
+        evdi)
+            evdi_cards+=("/dev/dri/$card")
+            ;;
+        amdgpu|i915|xe)
+            # Confirm it really has a render node before trusting it.
+            if [ -n "$(ls "$dev/../renderD"* 2>/dev/null)" ] || [ -e "$dev/device/drm" ]; then
+                [ -z "$render_card" ] && render_card="/dev/dri/$card"
+            fi
+            ;;
+        nvidia)
+            [ -z "$nvidia_card" ] && nvidia_card="/dev/dri/$card"
+            ;;
+    esac
+done
+
+# Fall back to the NVIDIA card only if no open-driver GPU was found.
+if [ -z "$render_card" ] && [ -n "$nvidia_card" ]; then
+    log "no amdgpu/i915 GPU found; falling back to NVIDIA ($nvidia_card)"
+    render_card="$nvidia_card"
+fi
+
+if [ -z "$render_card" ]; then
+    log "ERROR: found no render-capable GPU to render on. Aborting."
+    exit 1
+fi
+
+if [ ${#evdi_cards[@]} -eq 0 ]; then
+    log "WARNING: no evdi cards found. Is displaylink-driver.service running?"
+    log "  check: systemctl status displaylink-driver"
+fi
+
+export WLR_EVDI_RENDER_DEVICE="$render_card"
+
+# Restrict wlroots to the evdi cards for output. The primary (first) device is
+# where wlroots creates its renderer; the patch redirects that to
+# WLR_EVDI_RENDER_DEVICE. Excluding the real GPUs here keeps the proprietary
+# NVIDIA driver out of the output path entirely.
+if [ ${#evdi_cards[@]} -gt 0 ]; then
+    IFS=':' eval 'export WLR_DRM_DEVICES="${evdi_cards[*]}"'
+fi
+
+export LD_LIBRARY_PATH="$LIBDIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# evdi has no hardware cursor plane, so without this the mouse pointer is
+# invisible on DisplayLink outputs. Forces wlroots to composite the cursor
+# in software.
+export WLR_NO_HARDWARE_CURSORS=1
+
+# Wayland-friendly defaults; harmless if the app ignores them.
+export XDG_CURRENT_DESKTOP=sway
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM=wayland
+export _JAVA_AWT_WM_NONREPARENTING=1
+
+log "render device : $WLR_EVDI_RENDER_DEVICE"
+log "output devices: ${WLR_DRM_DEVICES:-<auto>}"
+log "wlroots       : $LIBDIR/libwlroots.so.12"
+
+# --unsupported-gpu is required: the patched path is not an upstream-supported
+# configuration, and sway refuses to start on proprietary drivers without it.
+exec /usr/bin/sway --unsupported-gpu "$@"
