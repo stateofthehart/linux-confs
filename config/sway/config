@@ -7,19 +7,27 @@ set $wndw Mod4
 font pango:monospace 8
 
 # --- Apps you can swap ---
-set $term foot
+set $term kitty
 set $menu rofi -show drun -show-icons
 set $winmenu rofi -show window
 
 # Start XDG autostart entries
 exec_always dex --autostart --environment sway
 
+# Monitor layout persistence (reads ~/.config/kanshi/config)
+exec_always pkill -x kanshi; kanshi
+
+# Failsafe: if a monitor combo has no kanshi profile and sway stacks outputs at
+# 0,0, spread them left-to-right instead of leaving them overlapping.
+# (Script self-singletons via flock, so no pkill needed here.)
+exec_always ~/.config/sway/scripts/output-catchall.sh --listen
+
 # Notifications (Wayland-native)
 exec_always mako
 
 # --- Screen lock / idle ---
 # Locks after 10 min idle
-exec_always swayidle -w \
+exec_always pkill -x swayidle; swayidle -w \
   timeout 600 '~/.config/sway/scripts/lock.sh'
 
 # Pol-kit auth
@@ -88,8 +96,8 @@ focus_wrapping workspace
 
 bindsym $mod+Shift+Tab focus left
 bindsym $mod+Tab focus right
-bindsym $mod+Control+Shift+Tab workspace prev
-bindsym $mod+Control+Tab workspace next
+bindsym $mod+Control+Shift+Tab workspace prev_on_output
+bindsym $mod+Control+Tab workspace next_on_output
 
 # Focus (your arrows)
 bindsym $mod+Down focus down
@@ -153,8 +161,38 @@ bindsym $mod+Shift+8 move container to workspace number $ws8
 bindsym $mod+Shift+9 move container to workspace number $ws9
 bindsym $mod+Shift+0 move container to workspace number $ws10
 
-bindsym $mod+Control+Shift+Right move container to workspace next; workspace next
-bindsym $mod+Control+Shift+Left  move container to workspace prev; workspace prev
+bindsym $mod+Control+Shift+Right move container to workspace next_on_output; workspace next_on_output
+bindsym $mod+Control+Shift+Left  move container to workspace prev_on_output; workspace prev_on_output
+
+# --- Multi-monitor ---
+# Output layout is now managed by kanshi (~/.config/kanshi/config). kanshi
+# auto-applies profiles when outputs connect/disconnect, so plug/unplug of the
+# dock just works. After rearranging in wdisplays, re-capture into kanshi's
+# config (NOT here) with:
+#   swaymsg -t get_outputs | jq -r '.[] | "    output \(.name) mode \(.current_mode.width)x\(.current_mode.height) position \(.rect.x),\(.rect.y) scale \(.scale)"'
+# Do NOT add `output … position …` lines here — they'd fight with kanshi.
+
+# Cross-monitor navigation. Mnemonic: Super ($wndw) = "between monitors",
+# arrows = direction. Directions are spatial — they respect the physical 2D
+# layout set in wdisplays (top row + laptop below).
+
+# Directional focus (left/right/up/down) is unreliable when monitors overlap or
+# are fractionally scaled, and `focus output next` isn't valid syntax. So we cycle
+# by physical position via a helper that resolves target monitors by name.
+# Mnemonic: Super = "between monitors"; Left/Right = previous/next monitor.
+set $mnav ~/.config/sway/scripts/monitor-nav.sh
+
+# Focus the previous/next monitor (wraps around)
+bindsym $wndw+Left  exec $mnav focus prev
+bindsym $wndw+Right exec $mnav focus next
+
+# Send the focused window to the previous/next monitor
+bindsym $wndw+Shift+Left  exec $mnav move-window prev
+bindsym $wndw+Shift+Right exec $mnav move-window next
+
+# Move the entire focused workspace to the previous/next monitor
+bindsym $wndw+Control+Left  exec $mnav move-workspace prev
+bindsym $wndw+Control+Right exec $mnav move-workspace next
 
 # Reload config
 bindsym $mod+Shift+c reload
@@ -179,13 +217,11 @@ mode "resize" {
 
     bindsym Return mode "default"
     bindsym Escape mode "default"
-    bindsym $mod+r mode "default"
 }
 bindsym $mod+r mode "resize"
 
 # --- Dual Bar Setup ---
 # Top bar: System monitoring (workspaces, cpu, memory, gpu, temps, disk)
 # Bottom bar: Controls (wifi, bluetooth, brightness, volume, battery, clock, tray)
-exec_always waybar --config ~/.config/waybar/config-top
-exec_always waybar --config ~/.config/waybar/config-bottom
+exec_always pkill -x waybar; waybar --config ~/.config/waybar/config-top & waybar --config ~/.config/waybar/config-bottom &
 

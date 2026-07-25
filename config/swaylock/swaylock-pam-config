@@ -1,0 +1,15 @@
+#%PAM-1.0
+# Swaylock PAM - password OR fingerprint (both work independently)
+
+# Try password first (with likeauth to allow fallback)
+auth       sufficient   pam_unix.so try_first_pass likeauth nullok
+
+# Try fingerprint
+auth       sufficient   pam_fprintd.so
+
+# Deny if neither worked
+auth       required     pam_deny.so
+
+account    required     pam_unix.so
+password   required     pam_unix.so try_first_pass nullok shadow
+session    required     pam_unix.so

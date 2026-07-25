@@ -6,10 +6,13 @@ case $- in
       *) return;;
 esac
 
-# ble.sh — fish-like input line (autosuggest, syntax highlight, better completion).
-# Optional: only loads if installed. `--noattach` defers init until the rc finishes;
-# the matching `ble-attach` at the bottom turns it on after everything else.
-[[ $- == *i* && -f /usr/share/blesh/ble.sh ]] && source /usr/share/blesh/ble.sh --noattach
+eval "$(ssh-agent -s)"
+ssh-add /home/ethan/.ssh/farmgpu-shared-team
+
+# ble.sh — fish-like input line: autosuggestions, syntax highlighting, completion menu.
+# `--noattach` defers initialization so the rest of this rc runs first; the matching
+# `ble-attach` at the bottom of the file activates it after everything else is set up.
+[[ $- == *i* ]] && source /usr/share/blesh/ble.sh --noattach
 
 # Basic PATH
 export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -36,7 +39,7 @@ lt() {
     # lt          → tree, depth 2
     # lt 4        → tree, depth 4
     # lt 4 ~/src  → tree, depth 4, in ~/src
-    # any other eza flags pass through (depth defaults to 2 if no number given)
+    # lt --level=5 / any other eza flags pass through (depth defaults to 2)
     if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
         eza --icons --git --tree --level="$1" "${@:2}"
     else
@@ -48,13 +51,17 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 # Drop-in replacements for interactive use (scripts unaffected).
-# Not aliasing du/ps — dust and procs have incompatible CLIs.
+# Note: NOT aliasing du/ps — dust and procs have incompatible CLIs (no -sh, etc).
+# Use `dust` and `procs` by name when you want them.
 alias top='btop'
 alias htop='btop'
 # ssh handled by ~/.local/bin/ssh — smart wrapper for kitten/plain.
 alias kssh='kitten ssh'
 
-# bat as colored man pager
+# bat as colored man pager.
+# - GROFF_NO_SGR / MANROFFOPT: ask groff not to emit ANSI escapes (plain output)
+# - col -bxp:  -p preserves any escapes that did slip through (instead of stripping ESC)
+# - bat -l man -p: syntax-highlights the resulting plain text as a man page
 export MANROFFOPT="-c"
 export GROFF_NO_SGR=1
 export MANPAGER="sh -c 'col -bxp | bat -l man -p'"
@@ -66,5 +73,37 @@ eval "$(zoxide init bash)"
 [[ -f /usr/share/fzf/key-bindings.bash ]] && source /usr/share/fzf/key-bindings.bash
 [[ -f /usr/share/fzf/completion.bash ]] && source /usr/share/fzf/completion.bash
 
-# Attach ble.sh now that setup is done (paired with --noattach at top).
+# Attach ble.sh now that all setup is done (paired with --noattach at top).
 [[ ${BLE_VERSION-} ]] && ble-attach
+
+# ssh host tab-completion from the NetBox /etc/hosts block + ~/.ssh/config aliases.
+# Bare hostnames only (the .fgpu aliases stay in /etc/hosts — they're load-bearing
+# for canonicalization — but we don't offer them as completions). Registered AFTER
+# ble-attach / bash-completion so this compspec wins and nothing re-injects .fgpu.
+# e.g. `ssh po<TAB>` -> potato01 potato02 ...
+_fleet_hosts() {
+  {
+    awk '/BEGIN netbox-hosts/{f=1;next} /END netbox-hosts/{f=0} f {print $3}' /etc/hosts 2>/dev/null
+    awk '/^[Hh]ost[ \t]/{for(i=2;i<=NF;i++) if($i !~ /[*?!]/) print $i}' ~/.ssh/config 2>/dev/null
+  } | sort -u
+}
+_ssh_fleet_complete() {
+  local cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=( $(compgen -W "$(_fleet_hosts)" -- "$cur") )
+}
+complete -F _ssh_fleet_complete ssh
+
+alias netcheck='ping -c 5 8.8.8.8'
+alias lssh='kssh -o StrictHostKeyChecking=no'
+alias prusa='GDK_BACKEND=x11 prusa-slicer'
+
+alias dmount='udisksctl mount -b $1'
+dumount() {
+	echo "Unmounting $1";
+	udisksctl unmount -b $1;
+	echo "Powering off $1";
+	udisksctl power-off -b $1;
+}
+
+alias unclaude='claude --dangerously-skip-permissions'
+export PATH="$HOME/.cargo/bin:$PATH"

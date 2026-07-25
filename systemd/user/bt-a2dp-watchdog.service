@@ -1,0 +1,14 @@
+[Unit]
+Description=Bluetooth A2DP Watchdog
+Documentation=Ensures bluetooth headphones connect with A2DP instead of HFP
+After=wireplumber.service bluetooth.target
+Wants=wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=/home/ethan/.config/waybar/scripts/bt-a2dp-watchdog.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,10 @@
+# milliseconds (10 seconds)
+default-timeout=10000
+
+# force your timeout even if the app asks for “persistent”
+ignore-timeout=1
+
+# optional: keep critical notifications on-screen until clicked
+[urgency=critical]
+default-timeout=0
+

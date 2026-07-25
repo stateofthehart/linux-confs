@@ -19,7 +19,7 @@
 
   "sway/workspaces": {
     "disable-scroll": false,
-    "all-outputs": true,
+    "all-outputs": false,
     "format": "{name}",
     "format-window-separator": "",
     "window-format": "<span foreground='#5f87ff'>■</span>",

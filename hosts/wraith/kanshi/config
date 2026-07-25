@@ -1,0 +1,36 @@
+# kanshi — auto-applies monitor arrangements when outputs connect/disconnect.
+# Profiles match on the set of currently-connected outputs.
+#
+# Limitation: both externals are XEC ES-G27C1Q with serial "Unknown", so kanshi
+# can't distinguish them by EDID. We match by connector name (DVI-I-1/DVI-I-2),
+# but those names depend on dock USB enumeration and can shift across reconnects.
+# If after a reconnect the externals appear swapped left/right, run wdisplays
+# once to re-arrange and re-capture with:
+#   swaymsg -t get_outputs | jq -r '.[] | "    output \(.name) mode \(.current_mode.width)x\(.current_mode.height) position \(.rect.x),\(.rect.y) scale \(.scale)"'
+
+# Docked: two externals across the top, laptop centered below.
+profile docked {
+    output DVI-I-1 mode 2560x1440 position 0,0       scale 1.2
+    output DVI-I-2 mode 2560x1440 position 2134,0    scale 1.2
+    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+}
+
+# Same physical layout but with the externals' connector names swapped — applies
+# automatically if the dock comes up with the names reversed.
+profile docked-swapped {
+    output DVI-I-2 mode 2560x1440 position 0,0       scale 1.2
+    output DVI-I-1 mode 2560x1440 position 2134,0    scale 1.2
+    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+}
+
+# Laptop + a single HiDPI external on DisplayPort (e.g. RTK HG560T34, 3840x2400).
+# Laptop left, external right. Swap sides with wdisplays if you prefer.
+profile single-external-dp2 {
+    output eDP-1 mode 1920x1080 position 0,0    scale 1.0
+    output DP-2  mode 3840x2400 position 1920,0 scale 2.0
+}
+
+# Undocked: laptop only.
+profile undocked {
+    output eDP-1 mode 1920x1080 position 0,0 scale 1.0
+}
