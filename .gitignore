@@ -1,0 +1,6 @@
+# Host-local files that live inside symlinked config dirs — never commit.
+config/sway/config.d/
+config/waybar/fallback-sink
+
+# install.sh backups
+*.bak.*

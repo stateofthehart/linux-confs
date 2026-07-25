@@ -1,35 +1,70 @@
 # linux-confs
 
-Personal Arch/CachyOS environment — sway + waybar + foot + bash, plus the
+Personal sway desktop environment — sway + waybar + kitty/foot + bash/xonsh —
+installable on **Arch/CachyOS or Ubuntu/Debian** with one script, plus the
 fixes needed to make gnome-keyring (and therefore 1Password's 2FA token
 persistence and SSH agent) work correctly under sway.
+
+Porting a machine that isn't a wraith-clone? **Read [PORTING.md](PORTING.md)
+first** — package name maps, laptop-vs-desktop gotchas, and the DisplayLink
+`WLR_*` warning live there.
 
 ## Layout
 
 ```
-home/.bash_profile        -> ~/.bash_profile
-home/.bashrc              -> ~/.bashrc
-home/.xonshrc             -> ~/.xonshrc
-sway/config               -> ~/.config/sway/config
-sway/scripts/lock.sh      -> ~/.config/sway/scripts/lock.sh
-i3/config                 -> ~/.config/i3/config
-foot/foot/                -> ~/.config/foot/   (whole dir)
-waybar/waybar/            -> ~/.config/waybar/ (whole dir)
+config/               mirrors ~/.config — linked whole-dir by install.sh
+  sway/               config + scripts/ (lock, monitor-nav, output-catchall,
+                      polkit-agent) + CHEATSHEET.md
+  waybar/             dual-bar setup: config-top, config-bottom, style.css,
+                      scripts/ (cpu, gpu, volume, network, media, bluetooth…)
+  foot/  kitty/       terminals (kitty is $term; foot kept for minimal hosts)
+  mako/               notifications
+  swaylock/           theme config (+ swaylock-pam-config, NOT auto-installed)
+  autostart/          .desktop entries started by dex (1Password, Slack)
+home/                 ~/.bash_profile  ~/.bashrc  ~/.xonshrc
+hosts/<hostname>/     per-host monitor topology — see hosts/README.md
+systemd/user/         bt-a2dp-watchdog.service (enabled only if BT hardware)
+tools/foot-theme.py   foot theme switcher/previewer
+legacy/i3/            pre-sway i3 config, kept for reference
+install.sh            provision this machine (packages + symlinks + services)
+cli-install.sh        managed shell block for remote hosts (see below)
+provision-host        pushes cli-install.sh to remote hosts
+PORTING.md            cross-distro / cross-hardware notes
 ```
 
-Plus post-install: installs `xontrib-prompt-starship` (for xonsh's starship prompt)
-and wires `delta` in as git's diff/log pager.
+Two host-local files live *inside* linked config dirs and are gitignored:
+`config/sway/config.d/` (per-host sway overrides, populated from `hosts/`)
+and `config/waybar/fallback-sink` (this host's audio sink node name).
 
 ## Install on a fresh machine
 
 ```
-git clone <this-repo> ~/linux-confs
+git clone git@github.com:ethans-home-lab/linux-confs.git ~/linux-confs
 cd ~/linux-confs
 ./install.sh
 ```
 
-`install.sh` is idempotent. Existing non-symlink targets in `$HOME` are
-backed up to `<target>.bak.<timestamp>` before being replaced.
+Works on Arch/CachyOS (pacman) and Ubuntu 24.04/Debian (apt); it detects the
+distro, installs the mapped package set, symlinks configs, seeds host-local
+files, enables user services, and **validates the sway config** before
+declaring success. Idempotent — existing non-symlink targets are backed up to
+`<target>.bak.<timestamp>`.
+
+On Ubuntu it also downloads the JetBrainsMono **Nerd Font** (the `apt` font
+is unpatched and lacks every bar glyph) and prints what noble doesn't package
+(swayosd, nwg-look, starship/eza/delta — see PORTING.md).
+
+### Per-host monitor layout
+
+Monitor topology never goes in the shared sway config. `install.sh` links
+`hosts/$(hostname -s)/` if present:
+
+- laptop/dock → `hosts/<host>/kanshi/config` (profiles per output-set)
+- desktop, fixed monitors → `hosts/<host>/sway-outputs.conf` →
+  `~/.config/sway/config.d/outputs.conf` (the main config `include`s that dir)
+
+New machine: run `install.sh`, create your `hosts/<host>/` dir, re-run.
+Details and current hosts: [hosts/README.md](hosts/README.md).
 
 ## Provision a remote shell
 
@@ -80,17 +115,20 @@ The fix lives in two files:
 
 - `home/.bash_profile` — auto-starts sway on tty1 with `exec sway`
   (no `dbus-run-session`), so everything inherits `/run/user/$UID/bus`.
-- `sway/config` — removes the redundant `gnome-keyring-daemon --start`
-  line; the systemd user unit `gnome-keyring-daemon.socket` socket-
-  activates it on demand instead.
+- `config/sway/config` — no `gnome-keyring-daemon --start` line; the
+  systemd user unit `gnome-keyring-daemon.socket` socket-activates it on
+  demand instead (install.sh enables the socket).
 
 ## Keeping the repo in sync with `~/.config`
 
 After `install.sh`, the home-side paths are symlinks into this repo, so
-edits land here automatically. Two exceptions worth knowing:
+edits land here automatically — `git status` in `~/linux-confs` shows them.
+Exceptions worth knowing:
 
-- **First-time edits** on a fresh machine before `install.sh` runs:
-  changes go to `~/.config/...` first; copy back into the repo manually.
-- **`waybar/` and `foot/` are directory symlinks**, so adding new
-  scripts/themes inside them shows up in `git status` automatically. New
-  top-level apps need a new repo dir + a new `link` line in `install.sh`.
+- **First-time edits on a machine that hasn't run `install.sh`**: changes go
+  to real files in `~/.config`; copy them back into the repo manually (this
+  repo drifted three months that way once — check `diff -r` if unsure).
+- **Host-local files** (`config.d/`, `fallback-sink`) are gitignored by
+  design; per-host things that should be *shared* belong in `hosts/<host>/`.
+- **New top-level apps** need a repo dir under `config/` + a `link` line in
+  `install.sh`.
