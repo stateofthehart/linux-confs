@@ -266,9 +266,12 @@ main() {
   post_install
   enable_user_services
   echo "==> Validating sway config..."
-  # --unsupported-gpu: on proprietary-NVIDIA hosts sway refuses to even
-  # parse the config without it (phantom); harmless everywhere else.
-  sway --unsupported-gpu --validate -c "$HOME/.config/sway/config" || {
+  # --unsupported-gpu: proprietary-NVIDIA hosts refuse to start without it.
+  # WLR_BACKENDS=headless: sway 1.9's --validate still initializes a backend,
+  # which fails without a seat (e.g. over ssh). Both are scoped to this one
+  # subprocess — they never touch the real session environment.
+  WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 \
+    sway --unsupported-gpu --validate -c "$HOME/.config/sway/config" || {
     echo "ERROR: sway config failed validation — fix before logging in!" >&2
     exit 1
   }
