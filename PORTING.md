@@ -20,7 +20,7 @@ These used to be hardcoded-for-wraith and are now portable:
 
 Same name on both: sway swaylock swayidle swaybg waybar kanshi foot kitty dex
 gnome-keyring rofi grim slurp wl-clipboard jq playerctl psmisc brightnessctl
-wireplumber pipewire-pulse tmux fzf mosh ripgrep zoxide btop bat xonsh.
+wireplumber pipewire-pulse tmux fzf mosh ripgrep zoxide btop bat eza xonsh.
 
 | Arch | Ubuntu 24.04 | Note |
 |---|---|---|
@@ -31,7 +31,7 @@ wireplumber pipewire-pulse tmux fzf mosh ripgrep zoxide btop bat xonsh.
 | fd | fd-find | binary is `fdfind` |
 | ttf-jetbrains-mono-nerd | — | `fonts-jetbrains-mono` is the UNPATCHED font (no bar glyphs); install.sh downloads the Nerd Font per-user instead |
 | swayosd | — | no Ubuntu package; build from source or drop (OSD only, config degrades gracefully) |
-| starship, eza, git-delta, dust, procs | — | not in noble; cargo/upstream installers |
+| starship, git-delta, dust, procs | — | not in noble; installed from pinned GitHub releases by the homelab-ansible cli_tools role |
 | rofi (2.x, native Wayland) | rofi 1.7 (X11) | runs via XWayland; native alternatives: fuzzel, wmenu |
 
 Waybar version gap: Arch ships 0.15.x, noble 0.9.24. The configs stay within

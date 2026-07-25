@@ -54,7 +54,7 @@ PACKAGES_UBUNTU=(
 
   # Shells + CLI (only what noble actually packages; bat installs as
   # `batcat`, fd-find as `fdfind`)
-  bash xonsh bat fd-find ripgrep zoxide btop
+  bash xonsh bat eza fd-find ripgrep zoxide btop
   tmux fzf mosh
 )
 
@@ -65,8 +65,9 @@ UBUNTU_GAPS="
               gracefully without it
   nwg-look    GTK-theme picker bound to Super+s — upstream .deb from
               github.com/nwg-piotr/nwg-look, or rebind
-  starship / eza / git-delta / dust / procs
-              prompt + CLI extras — cargo install, or upstream installers
+  starship / git-delta / dust / procs
+              prompt + CLI extras — run the homelab-ansible cli_tools role
+              (pinned GitHub releases), or cargo install
   amdgpu_top  optional gpu.sh fallback — cargo install amdgpu_top
 "
 
