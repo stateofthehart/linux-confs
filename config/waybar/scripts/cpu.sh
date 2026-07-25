@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CPU_TEMP="/sys/class/hwmon/hwmon5/temp1_input"   # k10temp Tctl (millidegC)
+# CPU temp sensor, resolved by driver name — hwmon indexes differ between
+# machines and can shift across boots, so never hardcode hwmonN.
+CPU_TEMP=""
+for h in /sys/class/hwmon/hwmon*; do
+  case "$(cat "$h/name" 2>/dev/null)" in
+    k10temp|zenpower|coretemp)   # AMD Tctl / Intel package (millidegC)
+      CPU_TEMP="$h/temp1_input"; break ;;
+  esac
+done
 
 # CPU utilization from /proc/stat delta
 read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat

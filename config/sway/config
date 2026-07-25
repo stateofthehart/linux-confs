@@ -30,8 +30,8 @@ exec_always mako
 exec_always pkill -x swayidle; swayidle -w \
   timeout 600 '~/.config/sway/scripts/lock.sh'
 
-# Pol-kit auth
-exec_always /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+# Pol-kit auth (script resolves the distro-specific agent path)
+exec_always ~/.config/sway/scripts/polkit-agent.sh
 
 exec_always dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway SWAYSOCK DBUS_SESSION_BUS_ADDRESS
 
@@ -224,4 +224,10 @@ bindsym $mod+r mode "resize"
 # Top bar: System monitoring (workspaces, cpu, memory, gpu, temps, disk)
 # Bottom bar: Controls (wifi, bluetooth, brightness, volume, battery, clock, tray)
 exec_always pkill -x waybar; waybar --config ~/.config/waybar/config-top & waybar --config ~/.config/waybar/config-bottom &
+
+# --- Host-specific overrides (keep last so they win) ---
+# Per-machine config lives in ~/.config/sway/config.d/ — e.g. static `output`
+# lines on desktops (see hosts/ in the linux-confs repo). The directory is
+# created by install.sh; sway warns if the glob is empty, which is harmless.
+include ~/.config/sway/config.d/*.conf
 

@@ -7,7 +7,10 @@
 # WirePlumber (at most once per 30 seconds to avoid restart loops).
 
 SINK="@DEFAULT_AUDIO_SINK@"
-FALLBACK_SINK="alsa_output.pci-0000_03_00.6.analog-stereo"
+# Recovery sink is host-specific (a PCI-addressed node name). Put yours in
+# ~/.config/waybar/fallback-sink (find it with: wpctl status). If the file is
+# absent, recovery skips straight to the wireplumber-restart path.
+FALLBACK_SINK="$(cat "$HOME/.config/waybar/fallback-sink" 2>/dev/null || true)"
 RESTART_COOLDOWN=30
 
 # Check if the default sink is functional. wpctl returns exit 0 even
@@ -22,14 +25,16 @@ ensure_default_sink() {
     fi
 
     # Phase 1: Try setting the default sink by node ID
-    local node_id
-    node_id=$(pw-cli ls Node 2>/dev/null \
-        | grep -B15 "node.name = \"$FALLBACK_SINK\"" \
-        | grep "^	id" | awk '{print $2}' | tr -d ',')
-    if [[ -n "$node_id" ]]; then
-        wpctl set-default "$node_id" &>/dev/null
-        if sink_is_ok; then
-            return 0
+    if [[ -n "$FALLBACK_SINK" ]]; then
+        local node_id
+        node_id=$(pw-cli ls Node 2>/dev/null \
+            | grep -B15 "node.name = \"$FALLBACK_SINK\"" \
+            | grep "^	id" | awk '{print $2}' | tr -d ',')
+        if [[ -n "$node_id" ]]; then
+            wpctl set-default "$node_id" &>/dev/null
+            if sink_is_ok; then
+                return 0
+            fi
         fi
     fi
 

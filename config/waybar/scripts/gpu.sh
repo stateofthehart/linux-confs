@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# GPU temp: your amdgpu hwmon is hwmon4, temp1_input = edge (millidegC)
-GPU_TEMP="/sys/class/hwmon/hwmon4/temp1_input"
+# GPU temp sensor, resolved by driver name — hwmon indexes differ between
+# machines and can shift across boots, so never hardcode hwmonN.
+# amdgpu only; an NVIDIA card would need nvidia-smi instead.
+GPU_TEMP=""
+for h in /sys/class/hwmon/hwmon*; do
+  if [[ "$(cat "$h/name" 2>/dev/null)" == "amdgpu" ]]; then
+    GPU_TEMP="$h/temp1_input"; break   # temp1 = edge (millidegC)
+  fi
+done
 
 temp_c="?"
 if [[ -r "$GPU_TEMP" ]]; then
