@@ -4,9 +4,16 @@
 
 [[ -f ~/.bashrc ]] && . ~/.bashrc
 
-# Auto-start sway on tty1 login
+# Auto-start sway on tty1 login.
+# Hosts that must NOT run plain `sway` (e.g. phantom's DisplayLink setup needs
+# a wrapper that sets WLR_*/LD_LIBRARY_PATH for a patched wlroots) drop their
+# launcher at ~/.config/sway/start-wrapper (host-local, gitignored) and it is
+# used instead. No wrapper file -> plain sway, unchanged behavior.
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "${XDG_VTNR:-0}" -eq 1 ]; then
   export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${UID}/bus"
+  if [ -x "$HOME/.config/sway/start-wrapper" ]; then
+    exec "$HOME/.config/sway/start-wrapper"
+  fi
   exec sway
 fi
 

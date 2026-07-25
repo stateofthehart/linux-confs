@@ -74,6 +74,11 @@ the bar per-host.
   any `WLR_*` variable in sway config, `environment.d`, or a systemd user
   unit breaks its DisplayLink output.** This repo sets none — keep it that
   way.
+- On such hosts sway must be started through that wrapper, never as plain
+  `sway`. `.bash_profile`'s tty1 autostart execs
+  `~/.config/sway/start-wrapper` (host-local, gitignored) when it exists —
+  point it at the DisplayLink launcher; hosts without the file get plain
+  sway as before.
 - phantom's two monitors report identical EDID (XEC 4433, serial "Unknown"):
   they can only be matched by connector name (`DVI-I-1`/`DVI-I-2`), never by
   `output "Make Model Serial"`. Same is true of wraith's dock monitors —
