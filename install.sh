@@ -242,6 +242,18 @@ enable_user_services() {
   else
     echo "  bt-a2dp-watchdog: skipped (no bluetooth adapter)"
   fi
+
+  # Ubuntu's waybar/mako debs ship user units wired into
+  # graphical-session.target. The sway config owns both via exec_always, so
+  # those units would double-start the bar under sway and leak waybar/mako
+  # into GNOME sessions. Mask them where present.
+  local u
+  for u in waybar.service mako.service; do
+    if [[ -e "/usr/lib/systemd/user/$u" ]]; then
+      systemctl --user mask --quiet "$u" 2>/dev/null || true
+      echo "  masked vendor unit: $u (sway config exec_always owns it)"
+    fi
+  done
 }
 
 main() {
@@ -254,7 +266,9 @@ main() {
   post_install
   enable_user_services
   echo "==> Validating sway config..."
-  sway --validate -c "$HOME/.config/sway/config" || {
+  # --unsupported-gpu: on proprietary-NVIDIA hosts sway refuses to even
+  # parse the config without it (phantom); harmless everywhere else.
+  sway --unsupported-gpu --validate -c "$HOME/.config/sway/config" || {
     echo "ERROR: sway config failed validation — fix before logging in!" >&2
     exit 1
   }
