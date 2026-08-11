@@ -71,13 +71,62 @@ UBUNTU_GAPS="
   amdgpu_top  optional gpu.sh fallback — cargo install amdgpu_top
 "
 
+# Fedora package names (probed against Fedora 44 aarch64 on 2026-08-11).
+# Differences from Arch worth knowing:
+#   dust         -> du-dust   (same rename as Ubuntu; binary is still `dust`)
+#   fd           -> fd-find   (binary IS `fd` here, unlike Ubuntu's `fdfind`)
+#   pipewire-pulse -> pipewire-pulseaudio
+#   polkit-gnome -> does not exist; mate-polkit is the closest GTK agent
+#                   (see sway/scripts/polkit-agent.sh, which knows its path)
+# bat and fd keep their real binary names on Fedora, so the ~/.local/bin
+# shims cli-install.sh creates for Ubuntu are unnecessary here (harmless).
+PACKAGES_FEDORA=(
+  # Sway / waybar / WM stack
+  sway swaylock swayidle swaybg
+  waybar mako kanshi foot kitty
+  mate-polkit gnome-keyring
+  rofi grim slurp wl-clipboard jq
+  playerctl psmisc libnotify dmenu
+  brightnessctl
+  wireplumber pipewire-pulseaudio
+
+  # Shells + prompt
+  bash xonsh python3-pip
+
+  # Modern CLI replacements
+  bat eza fd-find ripgrep zoxide git-delta btop du-dust procs
+
+  # Multiplexer + fuzzy finder + remote shell
+  tmux fzf mosh
+
+  # UNPATCHED font — install_fonts() fetches the patched Nerd Font per-user
+  jetbrains-mono-fonts
+)
+
+# Not packaged on Fedora 44 — informational, printed after install.
+FEDORA_GAPS="
+  dex         XDG autostart runner used by 'exec_always dex --autostart' in
+              sway/config. Single Python script: pip install --user dex, or
+              comment out that line and lose ~/.config/autostart handling.
+  swayosd     volume/brightness OSD — build from source or drop; the sway
+              config degrades gracefully without it (same as Ubuntu).
+  starship    prompt — NOT in Fedora repos. cli-install.sh fetches the
+              aarch64 GitHub release, or: dnf copr enable atim/starship
+  nwg-look    GTK-theme picker bound to Super+s — build from source or rebind
+  amdgpu_top  irrelevant here: this machine is Adreno, not amdgpu. gpu.sh
+              reads amdgpu sysfs only and will render empty — drop the waybar
+              GPU module on Snapdragon hosts.
+"
+
 detect_distro() {
   if command -v pacman >/dev/null 2>&1; then
     echo arch
   elif command -v apt-get >/dev/null 2>&1; then
     echo debian
+  elif command -v dnf >/dev/null 2>&1; then
+    echo fedora
   else
-    echo "ERROR: neither pacman nor apt-get found." >&2
+    echo "ERROR: none of pacman, apt-get, or dnf found." >&2
     exit 1
   fi
 }
@@ -95,6 +144,15 @@ install_packages() {
       echo
       echo "NOT packaged on Ubuntu 24.04 (manual, see PORTING.md):"
       echo "$UBUNTU_GAPS"
+      ;;
+    fedora)
+      echo "==> Installing packages (dnf)..."
+      # dnf aborts the whole transaction on any missing package, so install in
+      # one batch of known-good names only; gaps are reported, not attempted.
+      sudo dnf install -y "${PACKAGES_FEDORA[@]}"
+      echo
+      echo "NOT packaged on Fedora 44 (manual, see PORTING.md):"
+      echo "$FEDORA_GAPS"
       ;;
   esac
 }
@@ -186,6 +244,13 @@ link_host_configs() {
   # ...or static sway output lines (desktops). Mutually exclusive with kanshi.
   [[ -f "$hostdir/sway-outputs.conf" ]] && \
     link "$hostdir/sway-outputs.conf" "$HOME/.config/sway/config.d/outputs.conf"
+
+  # IMPORTANT: `[[ ... ]] && cmd` as the LAST statement makes this function
+  # return 1 whenever the test is false, and `set -e` then aborts the whole
+  # script. That silently killed everything after this point (fonts,
+  # fallback-sink, git-delta, systemd user units, sway config validation) on
+  # any kanshi-only host — i.e. every laptop, including wraith.
+  return 0
 }
 
 # ------------------------------------------------------------- post-install
