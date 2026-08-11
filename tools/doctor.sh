@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# doctor.sh — verify that what the configs REFERENCE actually EXISTS.
+#
+# Why this exists: install.sh validated the sway config's *syntax* but never
+# checked that the things the configs point at are installed or working. On an
+# established host that gap is invisible, because every dependency happens to
+# already be there. Provisioning a genuinely blank machine (specter, Fedora
+# aarch64, 2026-08) surfaced several latent bugs at once:
+#
+#   - `blueman` was in no package array, so waybar's bluetooth on-click was a
+#     silent no-op; it had been hand-installed on wraith long ago
+#   - volume.sh echoed a bare space instead of four Nerd Font glyphs, on BOTH
+#     machines — a dropped glyph is invisible in a diff
+#   - fallback-sink held `auto_null`, pointing volume.sh at a nonexistent sink
+#   - install.sh aborted early via `set -e` on kanshi-only hosts
+#   - three shell rc files sourced paths that only existed on wraith
+#
+# Run after install.sh, or whenever a bar module misbehaves. Exits non-zero if
+# anything FAILs, so it is usable in CI.
+#
+# Implementation note: every loop reads from a process substitution rather than
+# a pipe. `cmd | while read` runs the loop body in a SUBSHELL, so counter
+# increments inside it are discarded and the exit status is always wrong — the
+# first version of this script had exactly that bug.
+
+set -uo pipefail
+
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+fails=0
+warns=0
+
+pass() { printf '  \033[32mok\033[0m      %s\n' "$1"; }
+warn() { printf '  \033[33mwarn\033[0m    %s\n' "$1"; warns=$((warns+1)); }
+fail() { printf '  \033[31mFAIL\033[0m    %s\n' "$1"; fails=$((fails+1)); }
+
+# waybar accepts internal actions in on-click, not just commands. These are
+# handled by waybar itself and are not binaries to look for.
+is_waybar_action() {
+  case "$1" in
+    toggle|toggle_format|mode|reset|up|down|next|prev|play-pause|shift*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Strip leading option flags so `exec --no-startup-id foo` resolves to `foo`.
+first_real_word() {
+  local w
+  for w in $1; do
+    case "$w" in
+      -*) continue ;;
+      *)  printf '%s' "$w"; return ;;
+    esac
+  done
+}
+
+check_binary() {
+  local bin="$1" origin="$2"
+  [[ -z "$bin" ]] && return 0
+  case "$bin" in
+    ''|if|then|else|fi|exec|sh|bash|true|false|/*|~*|\$*|\{*) return 0 ;;
+  esac
+  is_waybar_action "$bin" && return 0
+  if command -v "$bin" >/dev/null 2>&1; then
+    pass "$bin  ($origin)"
+  else
+    fail "$bin NOT INSTALLED — referenced by $origin"
+  fi
+}
+
+echo "==> Binaries referenced by waybar (on-click / on-scroll)"
+while read -r cmd; do
+  [[ "$cmd" == /* ]] && continue          # our own scripts, exercised below
+  check_binary "$(first_real_word "$cmd")" "waybar config"
+done < <(
+  for f in "$CFG"/waybar/config-*; do
+    [[ -r "$f" ]] || continue
+    grep -oE '"on-(click|click-right|click-middle|scroll-up|scroll-down)"[[:space:]]*:[[:space:]]*"[^"]+"' "$f" 2>/dev/null \
+      | sed -E 's/.*:[[:space:]]*"//; s/"$//'
+  done | sort -u
+)
+
+echo "==> Binaries referenced by sway config (exec / exec_always)"
+while read -r cmd; do
+  [[ "$cmd" == /* || "$cmd" == '$'* ]] && continue
+  check_binary "$(first_real_word "$cmd")" "sway/config"
+done < <(
+  { cat "$CFG/sway/config" 2>/dev/null; cat "$CFG"/sway/config.d/* 2>/dev/null; } \
+    | grep -oE '^[[:space:]]*(exec|exec_always)[[:space:]]+.*' \
+    | sed -E 's/^[[:space:]]*(exec|exec_always)[[:space:]]+//' \
+    | sort -u
+)
+
+echo "==> waybar status modules produce usable output"
+# Only scripts wired to a module's "exec" are status producers expected to
+# print on stdout. Action scripts (btctl.sh, media-control.sh, the a2dp
+# watchdog) legitimately print nothing when idle — checking them produced pure
+# noise in the first version of this script.
+while read -r s; do
+  [[ -x "$s" ]] || continue
+  name="$(basename "$s")"
+  out="$(timeout 10 "$s" 2>/dev/null | head -1)"
+  if [[ -z "$out" ]]; then
+    # Not necessarily broken: modules with "hide-empty-text" (e.g.
+    # custom/media-info with no player running) are SUPPOSED to print nothing.
+    warn "$name produced no output (fine if its module sets hide-empty-text)"
+  elif [[ "$out" == *'?'* ]]; then
+    warn "$name output contains '?' (sensor unresolved): $out"
+  else
+    pass "$name -> $out"
+  fi
+done < <(
+  for f in "$CFG"/waybar/config-*; do
+    [[ -r "$f" ]] || continue
+    grep -oE '"exec"[[:space:]]*:[[:space:]]*"[^"]+"' "$f" 2>/dev/null \
+      | sed -E 's/.*:[[:space:]]*"//; s/"$//' \
+      | sed -E 's/^exec[[:space:]]+//' | awk '{print $1}'
+  done | sort -u | grep '\.sh$'
+)
+
+echo "==> icon-emitting scripts actually emit an icon"
+# A dropped Nerd Font glyph renders as a bare space and is invisible in diffs.
+# This is the check that would have caught the volume.sh regression on BOTH
+# hosts. Nerd Font icons live in the Private Use Area, so require a non-ASCII
+# byte in the output.
+for name in volume.sh bluetooth-status.sh media-playpause.sh; do
+  s="$CFG/waybar/scripts/$name"
+  [[ -x "$s" ]] || continue
+  out="$(timeout 10 "$s" 2>/dev/null | head -1)"
+  if printf '%s' "$out" | LC_ALL=C grep -q '[^ -~]'; then
+    pass "$name emits a glyph"
+  else
+    fail "$name emits NO glyph (icon lost?): '$out'"
+  fi
+done
+
+echo "==> audio: fallback-sink names a real sink"
+sinkfile="$CFG/waybar/fallback-sink"
+if [[ ! -s "$sinkfile" ]]; then
+  warn "fallback-sink unset (volume.sh recovery restarts wireplumber instead)"
+else
+  fb="$(cat "$sinkfile")"
+  if [[ "$fb" == "auto_null" ]]; then
+    fail "fallback-sink is 'auto_null' — PipeWire's dummy sink, not a real device"
+  elif ! command -v wpctl >/dev/null 2>&1; then
+    warn "wpctl absent; cannot validate fallback-sink '$fb'"
+  elif wpctl status 2>/dev/null | grep -q "$fb"; then
+    pass "fallback-sink = $fb"
+  else
+    warn "fallback-sink '$fb' not in wpctl status (stale — sink renamed?)"
+  fi
+fi
+
+echo "==> Nerd Font available to waybar"
+nerd_count="$(fc-list 2>/dev/null | grep -ci 'nerd font' || true)"
+if [[ "${nerd_count:-0}" -gt 0 ]]; then
+  pass "Nerd Font present ($nerd_count faces)"
+else
+  fail "no Nerd Font — every bar icon renders as a box"
+fi
+
+echo "==> configs are symlinks to this repo (drift check)"
+# wraith predates install.sh and has REAL directories under ~/.config, so
+# repo-side fixes never reach it. That is how the volume.sh glyph fix could be
+# committed and still not apply on the machine it was authored from.
+for p in waybar sway kitty mako; do
+  t="$CFG/$p"
+  [[ -e "$t" ]] || continue
+  if [[ -L "$t" ]]; then
+    pass "$p -> $(readlink "$t")"
+  else
+    warn "$p is a real directory, NOT a symlink — repo changes will not reach this host"
+  fi
+done
+
+echo
+if (( fails )); then
+  printf '\033[31m%d check(s) FAILED\033[0m, %d warning(s)\n' "$fails" "$warns"
+  exit 1
+fi
+printf '\033[32mAll checks passed\033[0m (%d warning(s))\n' "$warns"

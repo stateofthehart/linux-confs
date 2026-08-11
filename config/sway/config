@@ -41,7 +41,16 @@ exec_always dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CUR
 # No need for nm-applet or blueman-applet in tray
 
 exec_always --no-startup-id swayosd-server
-exec_always --no-startup-id swayosd
+# NOTE: there is no binary called plain `swayosd`. The package ships
+# swayosd-server (the daemon, above), swayosd-client (invoked per keypress) and
+# swayosd-libinput-backend (watches keys globally, needs input-group access and
+# is normally run as a SYSTEM systemd unit, not from here). The old
+# `exec_always swayosd` line here failed silently on every sway start.
+#
+# Nothing in this config binds swayosd-client, so the OSD has never actually
+# displayed. To enable it: `systemctl enable --now swayosd-libinput-backend`
+# for automatic volume/brightness popups, or bind swayosd-client explicitly,
+# e.g. bindsym XF86AudioRaiseVolume exec swayosd-client --output-volume raise
 
 input type:touchpad {
     tap enabled
