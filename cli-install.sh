@@ -108,20 +108,32 @@ detect_pm() {
     fi
 }
 
-# Fetch a static x86_64 Linux binary from a GitHub project's latest release.
+# Fetch a static Linux binary from a GitHub project's latest release.
 # Args: <repo> <asset_url_filter> <binary_name>
 # Idempotent: returns 0 if the binary is already on PATH.
-# Used to fill gaps where a distro's repo doesn't ship a tool (e.g. Ubuntu 24.04
-# noble lacks du-dust and procs; both publish static x86_64 release binaries).
+# Used to fill gaps where a distro's repo doesn't ship a tool (Ubuntu 24.04
+# noble lacks du-dust and procs; Fedora 44 lacks starship).
+#
+# The asset filter may contain the literal token %ARCH%, replaced with the
+# release-naming form of the current machine. This used to hard-skip anything
+# that wasn't x86_64, which silently left aarch64 hosts (e.g. the Snapdragon
+# ThinkBook) with no starship/dust/procs at all. These projects all publish
+# aarch64 assets; only the filename differs.
 github_release_install() {
     local repo=$1 pattern=$2 binary=$3
 
     command -v "$binary" >/dev/null 2>&1 && return 0
 
-    if [[ "$(uname -m)" != "x86_64" ]]; then
-        echo "  $binary: skipping github fallback — only x86_64 supported here" >&2
-        return 1
-    fi
+    local gh_arch
+    case "$(uname -m)" in
+        x86_64)          gh_arch=x86_64  ;;
+        aarch64|arm64)   gh_arch=aarch64 ;;
+        *)
+            echo "  $binary: no github asset naming known for $(uname -m)" >&2
+            return 1
+            ;;
+    esac
+    pattern=${pattern//%ARCH%/$gh_arch}
 
     echo "==> fetching $binary from github.com/$repo/releases/latest"
     local url
@@ -229,18 +241,26 @@ install_packages() {
 
     # Github-release fallbacks for tools missing from older distro repos.
     # These no-op if the binary is already on PATH.
-    github_release_install bootandy/dust 'x86_64-unknown-linux-gnu\.tar\.gz' dust  || true
-    github_release_install dalance/procs 'x86_64-linux\.zip'                procs || true
+    github_release_install bootandy/dust '%ARCH%-unknown-linux-gnu\.tar\.gz' dust  || true
+    github_release_install dalance/procs '%ARCH%-linux\.zip'                procs || true
 
     # Standalone `kitten` binary so `kitten icat` works over SSH from a kitty
     # terminal. Avoids pulling the full `kitty` package (X11/GL deps) on servers.
-    if ! command -v kitten >/dev/null 2>&1 && [[ "$(uname -m)" == "x86_64" ]]; then
-        echo "==> installing kitten to ~/.local/bin"
-        mkdir -p "$HOME/.local/bin"
-        curl -fsSL -o "$HOME/.local/bin/kitten" \
-            https://github.com/kovidgoyal/kitty/releases/latest/download/kitten-linux-amd64 \
-            && chmod +x "$HOME/.local/bin/kitten" \
-            || echo "  kitten: download failed" >&2
+    # kitty publishes both amd64 and arm64 kitten binaries; pick by machine.
+    if ! command -v kitten >/dev/null 2>&1; then
+        local kitten_arch=
+        case "$(uname -m)" in
+            x86_64)        kitten_arch=amd64 ;;
+            aarch64|arm64) kitten_arch=arm64 ;;
+        esac
+        if [[ -n "$kitten_arch" ]]; then
+            echo "==> installing kitten ($kitten_arch) to ~/.local/bin"
+            mkdir -p "$HOME/.local/bin"
+            curl -fsSL -o "$HOME/.local/bin/kitten" \
+                "https://github.com/kovidgoyal/kitty/releases/latest/download/kitten-linux-${kitten_arch}" \
+                && chmod +x "$HOME/.local/bin/kitten" \
+                || echo "  kitten: download failed" >&2
+        fi
     fi
 
     # Xontrib bridge for starship in xonsh (no native xonsh support upstream).
