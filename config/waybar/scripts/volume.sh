@@ -74,14 +74,19 @@ case "${1:-}" in
 
         vol=$(echo "$output" | awk '{printf "%.0f", $2 * 100}')
 
+        # NOTE: these four glyphs were silently lost from this file at some
+        # point (only the no-sink fallback above kept its icon), leaving every
+        # branch echoing a bare space. Both wraith and specter rendered a
+        # volume readout with no icon. Keep them as literal UTF-8; do not let
+        # an editor or transfer strip them again.
         if echo "$output" | grep -q "MUTED"; then
-            echo " $vol%"
+            echo "󰝟 $vol%"
         elif [[ $vol -gt 50 ]]; then
-            echo " $vol%"
+            echo "󰕾 $vol%"
         elif [[ $vol -gt 0 ]]; then
-            echo " $vol%"
+            echo "󰖀 $vol%"
         else
-            echo " $vol%"
+            echo "󰕿 $vol%"
         fi
         ;;
 esac
