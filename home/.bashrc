@@ -6,13 +6,38 @@ case $- in
       *) return;;
 esac
 
-eval "$(ssh-agent -s)"
-ssh-add /home/ethan/.ssh/farmgpu-shared-team
+# ssh-agent: one agent per user session, reached through a FIXED socket path.
+#
+# The old `eval "$(ssh-agent -s)"` ran unconditionally and leaked a brand-new
+# agent process for every interactive shell — dozens accumulate over a session.
+# Checking SSH_AUTH_SOCK alone doesn't help: each new shell starts without it
+# and would spawn its own agent anyway. A fixed socket is what makes the agent
+# discoverable across shells.
+#
+# `ssh-add -l` exit codes: 0 = agent has keys, 1 = agent up but empty,
+# 2 = cannot reach an agent. Only 2 means we need to start one.
+_agent_reachable() { ssh-add -l >/dev/null 2>&1; [ $? -ne 2 ]; }
+
+if ! _agent_reachable; then
+    # Nothing inherited (and nothing forwarded in over SSH) — use our own.
+    export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent.socket"
+    if ! _agent_reachable; then
+        rm -f "$SSH_AUTH_SOCK"
+        ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null 2>&1
+    fi
+fi
+unset -f _agent_reachable
+for _key in "$HOME/.ssh/farmgpu-shared-team"; do
+    [ -f "$_key" ] && ssh-add -q "$_key" 2>/dev/null
+done
+unset _key
 
 # ble.sh — fish-like input line: autosuggestions, syntax highlighting, completion menu.
 # `--noattach` defers initialization so the rest of this rc runs first; the matching
 # `ble-attach` at the bottom of the file activates it after everything else is set up.
-[[ $- == *i* ]] && source /usr/share/blesh/ble.sh --noattach
+# NOT packaged on Fedora (Arch has `blesh`); guard the source so its absence is
+# silent instead of an error on every shell. Install from github.com/akinomyoga/ble.sh
+[[ $- == *i* ]] && [[ -r /usr/share/blesh/ble.sh ]] && source /usr/share/blesh/ble.sh --noattach
 
 # Basic PATH
 export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"

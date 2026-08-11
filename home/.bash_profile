@@ -18,10 +18,12 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "${XDG_VTNR:-0}" -eq 1 ];
 fi
 
 
-. "$HOME/.local/bin/env"
+# uv drops a PATH shim at ~/.local/bin/env. Only some hosts have uv installed,
+# so guard it — unguarded this errors on every login on a fresh machine.
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
-# Load interactive bash config
-[[ -f ~/.bashrc ]] && source ~/.bashrc
+# NOTE: ~/.bashrc is already sourced at the top of this file; sourcing it again
+# here ran every rc line twice (visible as duplicated startup errors).
 
 # opencode
 export PATH=/home/ethan/.opencode/bin:$PATH
