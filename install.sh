@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# install.sh — Provision a machine with these configs (Arch/CachyOS or
-# Ubuntu/Debian). Idempotent: safe to re-run. Existing non-symlink targets
-# are backed up to <target>.bak.<timestamp> before being replaced.
+# install.sh — Provision a machine with these configs (Arch/CachyOS,
+# Ubuntu/Debian, or Fedora). Idempotent: safe to re-run. Existing non-symlink
+# targets are backed up to <target>.bak.<timestamp> before being replaced.
 #
-# Porting notes (Ubuntu package gaps, laptop-vs-desktop bits, DisplayLink
-# warnings) live in PORTING.md — read it before provisioning a new box.
+# Porting notes (per-distro package gaps, aarch64 notes, laptop-vs-desktop
+# bits, DisplayLink warnings) live in PORTING.md — read it before provisioning
+# a new box.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +20,7 @@ PACKAGES_ARCH=(
   sway swaylock swayidle swaybg
   waybar mako kanshi foot kitty
   dex swayosd
-  polkit-gnome gnome-keyring
+  polkit-gnome gnome-keyring blueman
   rofi grim slurp wl-clipboard jq
   playerctl psmisc libnotify
   brightnessctl
@@ -46,7 +47,7 @@ PACKAGES_UBUNTU=(
   sway swaylock swayidle swaybg
   waybar mako-notifier kanshi foot kitty
   dex
-  policykit-1-gnome gnome-keyring
+  policykit-1-gnome gnome-keyring blueman
   rofi grim slurp wl-clipboard jq
   playerctl psmisc libnotify-bin suckless-tools
   brightnessctl
@@ -84,7 +85,7 @@ PACKAGES_FEDORA=(
   # Sway / waybar / WM stack
   sway swaylock swayidle swaybg
   waybar mako kanshi foot kitty
-  mate-polkit gnome-keyring
+  mate-polkit gnome-keyring blueman
   rofi grim slurp wl-clipboard jq
   playerctl psmisc libnotify dmenu
   brightnessctl
@@ -261,14 +262,28 @@ post_install() {
   install_fonts
 
   # waybar volume.sh recovery: record this host's sink node name if we can.
+  #
+  # `auto_null` is PipeWire's dummy sink, present when no real audio device has
+  # been detected yet. Recording it is worse than recording nothing: it looks
+  # populated so this block never re-runs, and volume.sh then falls back to a
+  # sink that does not exist. That happened on specter, where the sound card
+  # only appeared later (a missing ASoC topology, see PORTING.md), leaving a
+  # permanently broken volume module. So refuse to write it, and overwrite it
+  # if a previous run already did.
   local sinkfile="$HOME/.config/waybar/fallback-sink"
-  if [[ ! -s "$sinkfile" ]] && command -v wpctl >/dev/null 2>&1; then
+  local current=""
+  [[ -s "$sinkfile" ]] && current="$(cat "$sinkfile")"
+  if [[ -z "$current" || "$current" == "auto_null" ]] && command -v wpctl >/dev/null 2>&1; then
     local sink
     sink="$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null \
             | awk -F'"' '/node.name/{print $2; exit}')" || true
-    if [[ -n "${sink:-}" ]]; then
+    if [[ -n "${sink:-}" && "${sink}" != "auto_null" ]]; then
       echo "$sink" > "$sinkfile"
       echo "  waybar: fallback-sink = $sink"
+    else
+      echo "  waybar: no real audio sink yet — leaving fallback-sink unset"
+      echo "          (re-run install.sh once audio works, or write the value from"
+      echo "           'wpctl inspect @DEFAULT_AUDIO_SINK@' into $sinkfile)"
     fi
   fi
 
