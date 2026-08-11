@@ -44,6 +44,75 @@ sway version note: everything in `config/sway/config` is sway ≥1.9 compatible
 (verified against phantom's 1.9). Avoid 1.10+ features (`allow_tearing`,
 `primary`, HDR options) unless every host is upgraded.
 
+## Fedora 44 (aarch64) — specter
+
+Probed against Fedora 44 aarch64 on 2026-08-11 (`dnf info` over the whole
+Arch list, measured not guessed). `install.sh` now detects dnf and uses
+`PACKAGES_FEDORA`.
+
+Same name as Arch: sway swaylock swayidle swaybg waybar mako kanshi foot kitty
+gnome-keyring rofi grim slurp wl-clipboard jq playerctl psmisc libnotify dmenu
+brightnessctl wireplumber tmux fzf mosh bat eza ripgrep zoxide git-delta btop
+procs xonsh.
+
+| Arch | Fedora 44 | Note |
+|---|---|---|
+| `pipewire-pulse` | `pipewire-pulseaudio` | |
+| `dust` | `du-dust` | same rename as Ubuntu; binary is still `dust` |
+| `fd` | `fd-find` | binary IS `fd` here, unlike Ubuntu's `fdfind` — the `~/.local/bin` shims cli-install.sh makes for Ubuntu are unnecessary |
+| `python-pip` | `python3-pip` | |
+| `ttf-jetbrains-mono-nerd` | — | `jetbrains-mono-fonts` is the UNPATCHED upstream, same trap as Ubuntu; `install_fonts()` fetches the patched TTFs per-user (arch-independent) |
+| `polkit-gnome` | **does not exist** | Fedora ships `mate-polkit`, `lxqt-policykit`, `xfce-polkit`, `polkit-kde`. We use mate-polkit; `sway/scripts/polkit-agent.sh` knows all their paths |
+
+Not packaged on Fedora 44 at all:
+- **`dex`** — but `sway/config` has `exec_always dex --autostart`. It's a single
+  Python script: `curl -fsSL -o ~/.local/bin/dex https://raw.githubusercontent.com/jceb/dex/master/dex && chmod +x`
+- **`starship`** — `cli-install.sh` already uses starship.rs/install.sh, which
+  handles aarch64 fine. (`dnf copr enable atim/starship` also works.)
+- **`blesh`** — Arch-only. `.bashrc` now guards the source; without the guard it
+  errored on every single shell.
+- `swayosd`, `nwg-look` — same gaps as Ubuntu, config degrades gracefully.
+
+Fedora-specific behaviour that differs from Arch/Ubuntu:
+- **SELinux is enforcing.** Files copied in by `tar`/`cp` carry no context —
+  run `restorecon -Rv <path>` after. This bit us installing firmware into
+  `/lib/firmware`.
+- **firewalld is on by default.** `sshd` being enabled is not enough to reach
+  the box: `firewall-cmd --permanent --add-service=ssh && firewall-cmd --reload`.
+- `dnf` aborts the whole transaction on any missing package, so
+  `PACKAGES_FEDORA` must contain only verified names (no optimistic entries).
+- Rebooting with other sessions logged in is refused, and `systemctl reboot -i`
+  is blocked by polkit even for root. Use `systemctl start systemd-reboot.service`
+  — still a clean shutdown, just bypasses logind's inhibitor check.
+
+## aarch64 hosts generally
+
+- `cli-install.sh`'s `github_release_install()` used to hard-skip any machine
+  that wasn't x86_64, silently leaving aarch64 hosts with no starship/dust/procs.
+  It now maps `uname -m` into the asset filter via a `%ARCH%` token. Same fix
+  applied to the standalone `kitten` download (`kitten-linux-arm64`).
+- `waybar/scripts/gpu.sh` reads **amdgpu sysfs only**. On Snapdragon (Adreno)
+  it renders empty. Drop the GPU module from `config-bottom` on such hosts, or
+  teach gpu.sh to read `/sys/class/devfreq/*.gpu/cur_freq`.
+- `netfresh` in `.bash_profile` reloads `ath11k_pci` — that's wraith's QCA
+  chipset. specter uses **ath12k** (WCN7850); the alias is inert there.
+
+## Shell rc portability bugs found on a fresh host (fixed 2026-08-11)
+
+All three fired on *every* interactive shell on a clean install, and each
+appeared twice because `.bash_profile` sourced `.bashrc` a second time at the
+bottom after already sourcing it at the top:
+
+1. `. "$HOME/.local/bin/env"` — a **uv** artifact. Unguarded, so it errored on
+   any host without uv. Now guarded.
+2. `eval "$(ssh-agent -s)"` unconditionally — leaked a **new ssh-agent per
+   shell**. Now reuses a live agent if one is reachable.
+3. `ssh-add /home/ethan/.ssh/farmgpu-shared-team` — errored on hosts where the
+   key isn't present yet. Now existence-checked.
+
+Worth re-checking these whenever provisioning a genuinely fresh machine; they
+are invisible on an established host because the files happen to exist.
+
 ## Laptop-only components (inert or wrong on desktops)
 
 - `XF86MonBrightness*` bindings + waybar `backlight` module — no backlight

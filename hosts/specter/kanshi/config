@@ -1,0 +1,40 @@
+# kanshi — auto-applies monitor arrangements when outputs connect/disconnect.
+# Profiles match on the set of currently-connected outputs.
+#
+# specter = Lenovo ThinkBook 16 Gen 7 QOY (Snapdragon X Plus x1p42100, aarch64).
+#
+# Hardware notes for this host:
+#   - Internal panel is eDP-1, native 1920x1200 (16" WUXGA). Note 1920x1200,
+#     NOT 1920x1080 as on wraith — copying wraith's profiles verbatim would
+#     letterbox the display.
+#   - External video is DP-1 / DP-2, exposed via USB-C DisplayPort alt-mode
+#     (2 lanes). Both read "disconnected" with nothing attached.
+#   - HDMI does NOT work on kernels < 7.0; the bridge driver (realtek,rtd2171)
+#     landed Jan 2026. This host runs 6.19.10, so HDMI is unavailable — use
+#     USB-C DP alt-mode for external displays.
+#
+# Scale is left at 1.0: at 16" / 1920x1200 the DPI is close enough to wraith's
+# that the shared waybar/kitty font sizes work unmodified. Raise to 1.25 if you
+# want larger UI, but check waybar height in config-top first.
+#
+# To capture a new arrangement after moving things around with wdisplays:
+#   swaymsg -t get_outputs | jq -r '.[] | "    output \(.name) mode \(.current_mode.width)x\(.current_mode.height) position \(.rect.x),\(.rect.y) scale \(.scale)"'
+
+# Undocked: laptop only. The common case.
+profile undocked {
+    output eDP-1 mode 1920x1200 position 0,0 scale 1.0
+}
+
+# Laptop + one external over USB-C DP alt-mode on DP-1.
+# Laptop left, external right. Adjust the external's mode to match your display.
+profile single-external-dp1 {
+    output eDP-1 mode 1920x1200 position 0,0    scale 1.0
+    output DP-1  mode 2560x1440 position 1920,0 scale 1.0
+}
+
+# Same, but the display enumerated on DP-2 instead. Which connector a USB-C
+# display lands on is not stable across replugs, so both are defined.
+profile single-external-dp2 {
+    output eDP-1 mode 1920x1200 position 0,0    scale 1.0
+    output DP-2  mode 2560x1440 position 1920,0 scale 1.0
+}
