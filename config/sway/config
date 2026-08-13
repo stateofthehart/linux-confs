@@ -75,6 +75,10 @@ set $screenshot_dir ~/Pictures/Screenshots
 bindsym --release Print exec mkdir -p $screenshot_dir && grim $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
 bindsym --release Shift+Print exec mkdir -p $screenshot_dir && grim -g "$(slurp)" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
 bindsym --release Ctrl+Print exec mkdir -p $screenshot_dir && grim -g "$(swaymsg -t get_tree | jq -j '.. | select(.type?) | select(.focused).rect | "\(.x),\(.y) \(.width)x\(.height)"')" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+# Same three, for keyboards without a Print key (e.g. specter's ThinkBook 16)
+bindsym --release $wndw+p exec mkdir -p $screenshot_dir && grim $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindsym --release $wndw+Shift+p exec mkdir -p $screenshot_dir && grim -g "$(slurp)" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindsym --release $wndw+Ctrl+p exec mkdir -p $screenshot_dir && grim -g "$(swaymsg -t get_tree | jq -j '.. | select(.type?) | select(.focused).rect | "\(.x),\(.y) \(.width)x\(.height)"')" $screenshot_dir/screenshot-$(date +%Y%m%d-%H%M%S).png
 
 # Lock screen
 bindsym $wndw+l exec ~/.config/sway/scripts/lock.sh

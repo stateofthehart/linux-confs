@@ -132,3 +132,7 @@ dumount() {
 
 alias unclaude='claude --dangerously-skip-permissions'
 export PATH="$HOME/.cargo/bin:$PATH"
+# Flatpak-installed apps put their launchers here. Fedora's shell profile only
+# adds this for login shells, so without it `flatpak run`-less invocation (e.g.
+# `google-chrome-stable`) fails in an interactive non-login shell.
+export PATH="$PATH:/var/lib/flatpak/exports/bin"

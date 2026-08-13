@@ -104,9 +104,9 @@ Paste the output over the existing `output …` lines, then reload.
 
 | Keys | Action |
 |---|---|
-| `PrintScreen` | Full screen → `~/Pictures/Screenshots/` |
-| `Shift+PrintScreen` | Region (drag with `slurp`) |
-| `Ctrl+PrintScreen` | Focused window only |
+| `PrintScreen` *or* `Super+p` | Full screen → `~/Pictures/Screenshots/` |
+| `Shift+PrintScreen` *or* `Super+Shift+p` | Region (drag with `slurp`) |
+| `Ctrl+PrintScreen` *or* `Super+Ctrl+p` | Focused window only |
 
 ## Media keys (laptop function row)
 
