@@ -318,6 +318,22 @@ install_asoc_topology() {
   echo "  audio: reboot (or reload snd_soc_x1e80100) to instantiate the card"
 }
 
+# The topology above gets speakers working but leaves the internal microphones
+# returning digital silence: alsa-ucm-conf routes this machine to the T14s
+# profile, which wires the capture decimators to DMIC0/DMIC1. On this board the
+# mic array is on the other DMIC bank. Measured empirically -- see PORTING.md.
+#
+# Writes into /usr/share/alsa/ucm2, which is package-owned, so an alsa-ucm
+# update will drop it; re-running install.sh puts it back. The script is a
+# no-op on every other machine.
+install_ucm_mic_override() {
+  [[ -x "$REPO/tools/thinkbook16-mic-ucm.py" ]] || return 0
+  grep -q "ThinkBook 16 Gen 7 QOY" /proc/device-tree/model 2>/dev/null || return 0
+  echo "  audio: applying ThinkBook internal-mic UCM override"
+  sudo python3 "$REPO/tools/thinkbook16-mic-ucm.py" || true
+  echo "  audio: restart pipewire/wireplumber (or reboot) to pick it up"
+}
+
 # ------------------------------------------------------------- post-install
 
 post_install() {
@@ -411,6 +427,7 @@ main() {
   # Before post_install: it records the default sink, which does not exist
   # until the topology is in place and the card has instantiated.
   install_asoc_topology
+  install_ucm_mic_override
   post_install
   enable_user_services
   echo "==> Validating sway config..."
