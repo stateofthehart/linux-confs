@@ -150,6 +150,39 @@ else
   fi
 fi
 
+echo "==> audio: capture actually produces samples"
+# A capture device can enumerate, open, and stream the right number of frames
+# while delivering nothing but zeros -- that is exactly the state specter's
+# internal microphones are in. Every layer above (wpctl, arecord's exit status,
+# a meter in a GUI) reports success, so silence is invisible unless the samples
+# are inspected. Record briefly and look at the actual values.
+if ! command -v arecord >/dev/null 2>&1; then
+  warn "arecord absent; cannot verify capture"
+elif ! arecord -l 2>/dev/null | grep -q '^card'; then
+  warn "no capture devices at all"
+else
+  capwav="$(mktemp -t doctor-cap-XXXXXX.wav)"
+  if timeout 8 arecord -f S16_LE -r 48000 -c 2 -d 2 "$capwav" >/dev/null 2>&1 \
+     && [[ -s "$capwav" ]]; then
+    peak="$(python3 - "$capwav" <<'PY' 2>/dev/null || echo err
+import sys, wave, struct
+w = wave.open(sys.argv[1])
+raw = w.readframes(w.getnframes())
+s = struct.unpack("<%dh" % (len(raw) // 2), raw)
+print(max((abs(x) for x in s), default=0))
+PY
+)"
+    case "$peak" in
+      err|"") warn "could not measure capture level" ;;
+      0)      fail "capture returns digital silence (peak=0) — mic is routed but dead" ;;
+      *)      pass "capture produces signal (peak=$peak)" ;;
+    esac
+  else
+    warn "capture device would not open"
+  fi
+  rm -f "$capwav"
+fi
+
 echo "==> Nerd Font available to waybar"
 nerd_count="$(fc-list 2>/dev/null | grep -ci 'nerd font' || true)"
 if [[ "${nerd_count:-0}" -gt 0 ]]; then

@@ -254,6 +254,70 @@ link_host_configs() {
   return 0
 }
 
+# --------------------------------------------------------------- audio (arm)
+
+# Qualcomm X1E/X1P laptops need an ASoC topology blob whose filename is derived
+# from the DMI model string. linux-firmware ships one per known machine, so a
+# machine that shipped after the last firmware release gets NO sound card at
+# all -- not a misconfigured one, an absent one. That is what happened on
+# specter (ThinkBook 16 G7 QOY): the kernel asked for
+# X1E80100-LENOVO-ThinkBook-16-tplg.bin, no such file existed anywhere, and the
+# card failed to instantiate with -2.
+#
+# The ThinkPad T14s topology works byte-for-byte because the two boards are
+# identical in every audio-relevant device-tree property (same sndcard
+# compatible, same wcd9385 headset codec, same RX_0/TX_3/VA_0/WSA_0 DAI links,
+# same 2x sdw20217020400 speaker amps, same 4.8MHz DMIC rate). Donor choice
+# MUST be made that way, not by "same vendor" -- the Yoga Slim 7x looks similar
+# and is wrong (4 speaker drivers, 2 DAI links).
+#
+# /lib/firmware/updates is searched BEFORE /lib/firmware, so this survives
+# linux-firmware upgrades instead of being clobbered by them.
+#
+# This restores SPEAKERS and HDMI only. The internal microphones stay silent on
+# this board for reasons unrelated to the topology -- see PORTING.md.
+install_asoc_topology() {
+  local model="/proc/device-tree/model"
+  [[ -r "$model" ]] || return 0
+
+  local want donor dir="/lib/firmware/updates/qcom/x1e80100"
+  case "$(tr -d '\0' < "$model")" in
+    *"ThinkBook 16 Gen 7 QOY"*)
+      want="X1E80100-LENOVO-ThinkBook-16-tplg.bin"
+      donor="X1E80100-LENOVO-Thinkpad-T14s-tplg.bin"
+      ;;
+    *) return 0 ;;
+  esac
+
+  # Already provided by linux-firmware proper? Then upstream has caught up and
+  # this workaround must NOT shadow it.
+  if compgen -G "/lib/firmware/qcom/x1e80100/${want}*" >/dev/null 2>&1; then
+    echo "  audio: $want now shipped by linux-firmware — removing local override"
+    sudo rm -f "$dir/$want" "$dir/$want.xz"
+    return 0
+  fi
+  if compgen -G "$dir/${want}*" >/dev/null 2>&1; then
+    echo "  audio: topology workaround already in place"
+    return 0
+  fi
+
+  local src
+  src="$(compgen -G "/lib/firmware/qcom/x1e80100/${donor}*" | head -1)" || true
+  if [[ -z "${src:-}" ]]; then
+    echo "  audio: donor topology $donor not found — speakers will not work" >&2
+    return 0
+  fi
+
+  # Preserve the donor's compression suffix; the kernel tries .xz then plain.
+  local ext="${src##*/}"; ext="${ext#$donor}"
+  echo "  audio: installing $want$ext (from T14s topology)"
+  sudo mkdir -p "$dir"
+  sudo cp -p "$src" "$dir/$want$ext"
+  # Fedora enforces SELinux; an unlabelled blob is silently unreadable.
+  command -v restorecon >/dev/null 2>&1 && sudo restorecon -R /lib/firmware/updates
+  echo "  audio: reboot (or reload snd_soc_x1e80100) to instantiate the card"
+}
+
 # ------------------------------------------------------------- post-install
 
 post_install() {
@@ -344,6 +408,9 @@ main() {
   install_packages "$distro"
   link_configs
   link_host_configs
+  # Before post_install: it records the default sink, which does not exist
+  # until the topology is in place and the card has instantiated.
+  install_asoc_topology
   post_install
   enable_user_services
   echo "==> Validating sway config..."
