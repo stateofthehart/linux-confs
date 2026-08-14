@@ -457,6 +457,25 @@ write_block() {
     local rc=$1 block=$2
     local marker_start="# === cli-install: enhanced terminal aliases ==="
     local marker_end="# === /cli-install ==="
+
+    # This script is meant for bare remote hosts. On a host provisioned by
+    # install.sh, ~/.bashrc is a SYMLINK into the linux-confs checkout, and
+    # writing here would edit a tracked file through the link -- appending
+    # repo content on the remote, or (via the update path below) replacing the
+    # symlink with a regular file and silently detaching the host from the
+    # repo. The repo's own rc already sets up starship/eza/zoxide, so the block
+    # is redundant there anyway. Refuse, and say what to run instead.
+    if [[ -L "$rc" ]]; then
+        local target; target=$(readlink -f "$rc")
+        if [[ "$target" == *"/linux-confs/"* ]]; then
+            echo "==> $rc is a symlink into linux-confs ($target)" >&2
+            echo "    skipping rc edit — that file is version-controlled and already" >&2
+            echo "    configures the prompt. Run install.sh on this host instead;" >&2
+            echo "    cli-install.sh has still installed the binaries above." >&2
+            return 0
+        fi
+    fi
+
     touch "$rc"
 
     if grep -qF "$marker_start" "$rc"; then
@@ -466,7 +485,10 @@ write_block() {
             skip && $0 == e { skip=0; next }
             !skip
         ' "$rc" > "$tmp"
-        mv "$tmp" "$rc"
+        # Write THROUGH any symlink rather than `mv` over it, which would
+        # replace the link with a plain file.
+        cat "$tmp" > "$rc"
+        rm -f "$tmp"
         echo "==> updated existing block in $rc"
     else
         echo "==> appending block to $rc"
