@@ -263,7 +263,14 @@ while IFS= read -r grp; do
     warn "none of these exist: $grp (guarded source silently does nothing)"
   fi
 done < <(
+  # fzf >= 0.48 emits its own integration via `fzf --bash`, which .bashrc
+  # prefers; the /usr/share/fzf/* paths are only a fallback for older fzf. Do
+  # not report them missing when the primary mechanism works, or every Fedora
+  # host warns about a file it correctly never uses.
+  skip_fzf=0
+  command -v fzf >/dev/null 2>&1 && fzf --bash >/dev/null 2>&1 && skip_fzf=1
   cat "$HOME/.bashrc" "$HOME/.bash_profile" 2>/dev/null \
+    | { [[ $skip_fzf == 1 ]] && grep -v '/fzf/' || cat; } \
     | grep -oE '(/usr/share|/etc|\$HOME/\.local/share)[A-Za-z0-9_./-]*\.(sh|bash)' \
     | sed 's|\$HOME|'"$HOME"'|' | sort -u \
     | awk -F/ '{ key=$NF; groups[key]=groups[key]" "$0 } END { for (k in groups) print substr(groups[k],2) }'
