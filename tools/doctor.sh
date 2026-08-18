@@ -26,6 +26,13 @@
 set -uo pipefail
 
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Package names declared by install.sh, used to decide whether a stray file in
+# ~/.config belongs to this setup or to some unrelated app.
+tools_list="$(mktemp)"
+sed -n '/^PACKAGES_[A-Z]*=(/,/^)/p' "$REPO/install.sh" 2>/dev/null \
+  | sed 's/#.*//' | tr ' ' '\n' \
+  | grep -E '^[a-z0-9][a-z0-9._+-]*$' | sort -u > "$tools_list"
 fails=0
 warns=0
 
@@ -191,19 +198,69 @@ else
   fail "no Nerd Font — every bar icon renders as a box"
 fi
 
-echo "==> configs are symlinks to this repo (drift check)"
-# wraith predates install.sh and has REAL directories under ~/.config, so
-# repo-side fixes never reach it. That is how the volume.sh glyph fix could be
-# committed and still not apply on the machine it was authored from.
-for p in waybar sway kitty mako; do
-  t="$CFG/$p"
-  [[ -e "$t" ]] || continue
-  if [[ -L "$t" ]]; then
-    pass "$p -> $(readlink "$t")"
+echo "==> shell rc: tools guarded by 'command -v' are installed"
+# The rc files wrap optional tools in `command -v X >/dev/null && ...`, so a
+# missing tool degrades SILENTLY. starship went missing on specter exactly this
+# way: the prompt fell back to plain bash with no error anywhere, which reads as
+# "the dotfiles are broken" rather than "one package is absent". Derived from
+# the rc files themselves so it cannot fall behind them.
+while IFS= read -r tool; do
+  [[ -z "$tool" ]] && continue
+  if command -v "$tool" >/dev/null 2>&1; then
+    pass "$tool"
   else
-    warn "$p is a real directory, NOT a symlink — repo changes will not reach this host"
+    warn "$tool absent — rc files fall back silently without it"
   fi
-done
+done < <(
+  cat "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.xonshrc" 2>/dev/null \
+    | grep -oE 'command -v [A-Za-z0-9_.+-]+' | awk '{print $3}' | sort -u
+)
+
+echo "==> configs install.sh links are symlinks to this repo (drift check)"
+# Derived from install.sh's own `link` calls instead of a hardcoded list, so it
+# cannot fall behind as the repo grows. wraith predates install.sh and has REAL
+# directories under ~/.config, which is how the volume.sh glyph fix could be
+# committed and still not reach the machine it was authored from.
+while IFS='|' read -r rel dst; do
+  [[ -z "$rel" || -z "$dst" ]] && continue
+  src="$REPO/$rel"
+  tgt="$HOME/$dst"
+  [[ -e "$src" ]] || continue
+  if [[ ! -e "$tgt" && ! -L "$tgt" ]]; then
+    warn "$dst not present — install.sh has not been run here"
+  elif [[ -L "$tgt" && "$(readlink -f "$tgt")" == "$(readlink -f "$src")" ]]; then
+    pass "$dst"
+  else
+    warn "$dst is host-local, NOT a symlink — repo changes will not reach this host"
+  fi
+done < <(
+  grep -E '^[[:space:]]*link "\$REPO/' "$REPO/install.sh" 2>/dev/null \
+    | sed -E 's/^[[:space:]]*link[[:space:]]+"\$REPO\/([^"]+)"[[:space:]]+"\$HOME\/([^"]+)".*/\1|\2/' \
+    | grep -v '\$'
+)
+
+echo "==> host-local config the repo does not track"
+# starship.toml lived only on wraith for four months, so every other host
+# silently got upstream defaults and a different prompt. A config named after a
+# tool this setup installs, sitting in ~/.config but not linked into the repo,
+# exists on exactly one machine — surface it before it becomes the next drift.
+# Tool names come from install.sh's own package arrays, so this self-maintains.
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  base="${f%%.*}"
+  grep -qxF "$base" "$tools_list" || continue
+  t="$CFG/$f"
+  [[ -L "$t" && "$(readlink -f "$t")" == "$REPO"/* ]] && { pass "$f -> repo"; continue; }
+  # If the repo already carries this file, the drift check above owns it and
+  # reporting it again here would just double-count the same problem. Only flag
+  # files the repo has never heard of — the genuine blind spot.
+  if find "$REPO/config" "$REPO/home" -name "$f" -print -quit 2>/dev/null | grep -q .; then
+    continue
+  fi
+  warn "$f is host-local and NOT in the repo — it exists on this machine only"
+done < <(find "$CFG" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null \
+           | grep -vE '\.bak(\.|$)' | sort)
+rm -f "$tools_list"
 
 echo
 if (( fails )); then
