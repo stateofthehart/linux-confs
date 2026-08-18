@@ -251,6 +251,10 @@ link_configs() {
   # missing file. The rest of the file is the Nerd Font symbol preset.
   link "$REPO/config/starship/starship.toml" "$HOME/.config/starship.toml"
 
+  # systemd user-session environment (PATH for GDM-launched sessions, which
+  # never source .bash_profile). Applies on next login.
+  link "$REPO/config/environment.d/10-path.conf" "$HOME/.config/environment.d/10-path.conf"
+
   # swaylock: link the theme config only. swaylock-pam-config is fprintd/
   # laptop-specific and must NEVER be auto-installed to /etc/pam.d.
   link "$REPO/config/swaylock/config" "$HOME/.config/swaylock/config"

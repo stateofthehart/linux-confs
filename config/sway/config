@@ -7,7 +7,10 @@ set $wndw Mod4
 font pango:monospace 8
 
 # --- Apps you can swap ---
-set $term kitty
+# Terminal goes through a wrapper that forces software GL on Adreno GPUs,
+# where the hardware GL path corrupts kitty's cursor rendering. No-op
+# everywhere else. See the script for how that was isolated.
+set $term ~/.config/sway/scripts/terminal.sh
 set $menu rofi -show drun -show-icons
 set $winmenu rofi -show window
 
