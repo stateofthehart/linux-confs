@@ -190,6 +190,18 @@ install_starship() {
     || echo "  starship: install failed — prompt will fall back to plain bash" >&2
 }
 
+# `sway/config` runs `dex --autostart` for XDG autostart entries, but Fedora
+# does not package dex, and on specter it had been hand-placed in ~/.local/bin
+# owned by no package -- a reprovision would silently lose ~/.config/autostart
+# handling with no error, since sway's exec failures are invisible.
+install_dex() {
+  command -v dex >/dev/null 2>&1 && { echo "  dex: already installed"; return 0; }
+  command -v pip3 >/dev/null 2>&1 || { echo "  dex: pip3 absent, skipping" >&2; return 0; }
+  echo "  dex: installing via pip --user"
+  pip3 install --user --quiet --break-system-packages dex 2>/dev/null \
+    || echo "  dex: install failed — XDG autostart entries will not run" >&2
+}
+
 # ------------------------------------------------------------------ linking
 
 # link <source-in-repo> <target-in-home>
@@ -363,6 +375,7 @@ post_install() {
 
   install_fonts
   install_starship
+  install_dex
 
   # waybar volume.sh recovery: record this host's sink node name if we can.
   #

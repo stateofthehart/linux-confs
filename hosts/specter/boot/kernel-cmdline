@@ -1,0 +1,27 @@
+# Boot-critical kernel arguments for the ThinkBook 16 G7 QOY (Snapdragon X1P42100).
+#
+# On Fedora these live in /etc/kernel/cmdline, NOT /etc/default/grub. Fedora uses
+# Boot Loader Spec entries, and kernel-install seeds each new entry's `options`
+# line from /etc/kernel/cmdline -- so editing /etc/default/grub has no effect on
+# new kernels and is a trap worth knowing about. Verified: the args below are
+# present in every BLS entry including the rescue one.
+#
+# root=/rd.luks.uuid= are machine-specific and deliberately left as placeholders;
+# take those from the existing entry rather than from here.
+#
+#   root=UUID=<ROOT-UUID> ro rootflags=subvol=root rd.luks.uuid=luks-<LUKS-UUID>
+#
+# The arguments that actually matter for this machine:
+
+clk_ignore_unused       # keep clocks the bootloader left on; without it the
+pd_ignore_unused        # display and several peripherals die during boot
+arm64.nopauth           # pointer auth breaks on this firmware (as on the X13s)
+efi=noruntime           # EFI runtime services hang this firmware; fixed RHBZ #2443936
+systemd.tpm2_wait=0     # do not block waiting for a TPM that never appears
+earlycon=efifb          # bare `earlycon` is USELESS here -- it targets a serial
+                        # port this laptop does not have. efifb is the only way
+                        # to see anything before the display driver loads.
+mem_sleep_default=s2idle # this platform is s2idle-only
+
+# NOT set, deliberately:
+#   rhgb quiet  -- hides the very output you need when this machine fails to boot
