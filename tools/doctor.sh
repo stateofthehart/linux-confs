@@ -25,6 +25,15 @@
 
 set -uo pipefail
 
+# install.sh and cli-install.sh put tools in ~/.local/bin (starship, dex,
+# kitten) and cargo in ~/.cargo/bin. A non-interactive `ssh host doctor.sh` gets
+# PATH=/usr/local/bin:/usr/bin, so every one of those reads as NOT INSTALLED --
+# doctor.sh spent several runs reporting `dex` missing on specter when it was
+# installed the whole time. Resolve tools the way the user's shell does.
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
+case ":$PATH:" in *":$HOME/.cargo/bin:"*) ;; *) PATH="$HOME/.cargo/bin:$PATH" ;; esac
+export PATH
+
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Package names declared by install.sh, used to decide whether a stray file in
