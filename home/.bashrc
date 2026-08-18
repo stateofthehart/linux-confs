@@ -35,9 +35,21 @@ unset _key
 # ble.sh — fish-like input line: autosuggestions, syntax highlighting, completion menu.
 # `--noattach` defers initialization so the rest of this rc runs first; the matching
 # `ble-attach` at the bottom of the file activates it after everything else is set up.
-# NOT packaged on Fedora (Arch has `blesh`); guard the source so its absence is
-# silent instead of an error on every shell. Install from github.com/akinomyoga/ble.sh
-[[ $- == *i* ]] && [[ -r /usr/share/blesh/ble.sh ]] && source /usr/share/blesh/ble.sh --noattach
+# Arch packages it as `blesh` at /usr/share; Fedora does not package it at all,
+# so install.sh drops it in
+# ~/.local/share. Only the Arch path was checked here, so on Fedora ble.sh was
+# never sourced and the shell silently lost autosuggestions, syntax
+# highlighting and the completion menu -- which reads as "autocomplete is bad",
+# not as "a package is missing".
+if [[ $- == *i* ]]; then
+    for _ble in /usr/share/blesh/ble.sh "$HOME/.local/share/blesh/ble.sh"; do
+        if [[ -r $_ble ]]; then
+            source "$_ble" --noattach
+            break
+        fi
+    done
+    unset _ble
+fi
 
 # Basic PATH
 export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -94,9 +106,23 @@ export MANPAGER="sh -c 'col -bxp | bat -l man -p'"
 # zoxide — `z <partial>` jumps to "frecent" directories
 eval "$(zoxide init bash)"
 
-# fzf key bindings (Ctrl+R history search, Ctrl+T file picker, Alt+C cd into dir)
-[[ -f /usr/share/fzf/key-bindings.bash ]] && source /usr/share/fzf/key-bindings.bash
-[[ -f /usr/share/fzf/completion.bash ]] && source /usr/share/fzf/completion.bash
+# fzf key bindings (Ctrl-R history, Ctrl-T files, Alt-C cd) and completion.
+# The old hardcoded paths are Arch's layout. Fedora ships key-bindings under
+# .../fzf/shell/ and completion via /etc/bash_completion.d, so BOTH sources
+# silently did nothing there -- Ctrl-R had never worked on that host.
+# `fzf --bash` emits both and is distro-independent (fzf >= 0.48); fall back to
+# hunting the known paths for older fzf.
+if command -v fzf >/dev/null 2>&1 && fzf --bash >/dev/null 2>&1; then
+    eval "$(fzf --bash)"
+else
+    for _f in /usr/share/fzf/key-bindings.bash /usr/share/fzf/shell/key-bindings.bash; do
+        [[ -f $_f ]] && { source "$_f"; break; }
+    done
+    for _f in /usr/share/fzf/completion.bash /usr/share/fzf/shell/completion.bash; do
+        [[ -f $_f ]] && { source "$_f"; break; }
+    done
+    unset _f
+fi
 
 # Attach ble.sh now that all setup is done (paired with --noattach at top).
 [[ ${BLE_VERSION-} ]] && ble-attach

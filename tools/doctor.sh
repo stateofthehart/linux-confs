@@ -242,6 +242,33 @@ done < <(
     | grep -oE 'command -v [A-Za-z0-9_.+-]+' | awk '{print $3}' | sort -u
 )
 
+echo "==> shell rc: path-guarded sources actually resolve"
+# The `command -v` check above only catches tools invoked by NAME. The rc files
+# also source integration scripts by absolute PATH -- ble.sh, fzf key-bindings
+# -- guarded with [[ -r ... ]] so a wrong path is silent. Those paths are
+# distro-specific, and BOTH were Arch-only for months: on Fedora ble.sh never
+# loaded (no autosuggestions, no syntax highlighting) and fzf's Ctrl-R never
+# bound, with no error anywhere. Report any guarded path where NO candidate
+# resolves.
+while IFS= read -r grp; do
+  [[ -z "$grp" ]] && continue
+  found=""
+  for cand in $grp; do
+    [[ -e "${cand/#\~/$HOME}" ]] && { found="$cand"; break; }
+  done
+  label="$(printf '%s' "$grp" | awk '{print $1}')"
+  if [[ -n "$found" ]]; then
+    pass "$(basename "$found") -> $found"
+  else
+    warn "none of these exist: $grp (guarded source silently does nothing)"
+  fi
+done < <(
+  cat "$HOME/.bashrc" "$HOME/.bash_profile" 2>/dev/null \
+    | grep -oE '(/usr/share|/etc|\$HOME/\.local/share)[A-Za-z0-9_./-]*\.(sh|bash)' \
+    | sed 's|\$HOME|'"$HOME"'|' | sort -u \
+    | awk -F/ '{ key=$NF; groups[key]=groups[key]" "$0 } END { for (k in groups) print substr(groups[k],2) }'
+)
+
 echo "==> configs install.sh links are symlinks to this repo (drift check)"
 # Derived from install.sh's own `link` calls instead of a hardcoded list, so it
 # cannot fall behind as the repo grows. wraith predates install.sh and has REAL

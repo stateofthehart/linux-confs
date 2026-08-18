@@ -202,6 +202,35 @@ install_dex() {
     || echo "  dex: install failed — XDG autostart entries will not run" >&2
 }
 
+# ble.sh gives bash fish-like autosuggestions, syntax highlighting and a
+# completion menu -- the single biggest difference between "bash feels great"
+# and "autocomplete is bad". Arch packages it (`blesh`); Fedora and Ubuntu do
+# not, so .bashrc's guarded source silently did nothing there for months.
+# Upstream ships a prebuilt nightly tarball, which avoids a build dependency.
+install_blesh() {
+  if [[ -r /usr/share/blesh/ble.sh || -r "$HOME/.local/share/blesh/ble.sh" ]]; then
+    echo "  ble.sh: already installed"
+    return 0
+  fi
+  echo "  ble.sh: installing to ~/.local/share/blesh"
+  local tmp; tmp="$(mktemp -d)"
+  if curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz \
+       | tar -xJ -C "$tmp" 2>/dev/null; then
+    local src; src="$(find "$tmp" -maxdepth 1 -type d -name 'ble-nightly*' | head -1)"
+    if [[ -n "$src" && -r "$src/ble.sh" ]]; then
+      mkdir -p "$HOME/.local/share"
+      rm -rf "$HOME/.local/share/blesh"
+      mv "$src" "$HOME/.local/share/blesh"
+      echo "  ble.sh: installed"
+    else
+      echo "  ble.sh: unexpected tarball layout — skipped" >&2
+    fi
+  else
+    echo "  ble.sh: download failed — shell keeps plain bash completion" >&2
+  fi
+  rm -rf "$tmp"
+}
+
 # ------------------------------------------------------------------ linking
 
 # link <source-in-repo> <target-in-home>
@@ -380,6 +409,7 @@ post_install() {
   install_fonts
   install_starship
   install_dex
+  install_blesh
 
   # waybar volume.sh recovery: record this host's sink node name if we can.
   #
