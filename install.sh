@@ -176,6 +176,20 @@ install_fonts() {
   fi
 }
 
+# starship is packaged on Arch but NOT on Fedora, and on Ubuntu only in some
+# releases. install.sh linked its config while never installing the binary, so
+# a Fedora host ended up with the config and no prompt -- .bashrc silently fell
+# back to plain bash, which reads as "the dotfiles are broken" rather than "one
+# package is missing". Use upstream's installer into ~/.local/bin (no sudo),
+# the same method cli-install.sh uses, so the two paths agree.
+install_starship() {
+  command -v starship >/dev/null 2>&1 && { echo "  starship: already installed"; return 0; }
+  echo "  starship: installing to ~/.local/bin"
+  mkdir -p "$HOME/.local/bin"
+  curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin" >/dev/null 2>&1 \
+    || echo "  starship: install failed — prompt will fall back to plain bash" >&2
+}
+
 # ------------------------------------------------------------------ linking
 
 # link <source-in-repo> <target-in-home>
@@ -216,6 +230,14 @@ link_configs() {
   link "$REPO/config/foot"          "$HOME/.config/foot"
   link "$REPO/config/kitty"         "$HOME/.config/kitty"
   link "$REPO/config/mako"          "$HOME/.config/mako"
+
+  # starship prompt. Only two lines here actually change behaviour --
+  # `[hostname] ssh_only = false` and `[username] show_always = true`. Without
+  # them starship's DEFAULTS hide both locally, so a host with the binary but
+  # no config shows a bare `~` instead of `user in host in ~`. That is exactly
+  # what happened on specter, and it looked like a broken install rather than a
+  # missing file. The rest of the file is the Nerd Font symbol preset.
+  link "$REPO/config/starship/starship.toml" "$HOME/.config/starship.toml"
 
   # swaylock: link the theme config only. swaylock-pam-config is fprintd/
   # laptop-specific and must NEVER be auto-installed to /etc/pam.d.
@@ -340,6 +362,7 @@ post_install() {
   echo "==> Post-install configuration..."
 
   install_fonts
+  install_starship
 
   # waybar volume.sh recovery: record this host's sink node name if we can.
   #
