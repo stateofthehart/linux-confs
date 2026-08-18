@@ -157,12 +157,29 @@ else
   fb="$(cat "$sinkfile")"
   if [[ "$fb" == "auto_null" ]]; then
     fail "fallback-sink is 'auto_null' — PipeWire's dummy sink, not a real device"
-  elif ! command -v wpctl >/dev/null 2>&1; then
-    warn "wpctl absent; cannot validate fallback-sink '$fb'"
-  elif wpctl status 2>/dev/null | grep -q "$fb"; then
+  elif ! command -v pw-dump >/dev/null 2>&1; then
+    warn "pw-dump absent; cannot validate fallback-sink '$fb'"
+  # `wpctl status` prints DESCRIPTIONS ("Built-in Audio Speaker playback"), not
+  # node.name, so grepping it for a node.name can never match -- this check used
+  # to warn on every host with a perfectly valid fallback-sink. Compare against
+  # the actual node.name list instead.
+  elif pw-dump 2>/dev/null | python3 -c '
+import json, sys
+want = sys.argv[1]
+try:
+    objs = json.load(sys.stdin)
+except Exception:
+    sys.exit(2)
+names = [
+    ((o.get("info") or {}).get("props") or {}).get("node.name")
+    for o in objs
+    if (((o.get("info") or {}).get("props") or {}).get("media.class") == "Audio/Sink")
+]
+sys.exit(0 if want in names else 1)
+' "$fb"; then
     pass "fallback-sink = $fb"
   else
-    warn "fallback-sink '$fb' not in wpctl status (stale — sink renamed?)"
+    warn "fallback-sink '$fb' is not a current sink (stale — device renamed?)"
   fi
 fi
 
