@@ -107,3 +107,18 @@ dumount() {
 
 alias unclaude='claude --dangerously-skip-permissions'
 export PATH="$HOME/.cargo/bin:$PATH"
+
+# === stale terminal mode cleanup ===
+# Stale terminal modes: remote TUIs (claude, nvim, htop) turn on xterm mouse
+# reporting for the tmux pane. If the ssh session dies without exiting cleanly
+# (idle timeout, dropped link) it never sends the matching "off" sequences, so
+# tmux keeps forwarding mouse events into the shell as ^[[<35;40;12M gibberish
+# on the prompt line. Clear the modes at every prompt so the pane self-heals.
+_reset_term_modes() {
+  printf '\033[?1000l\033[?1002l\033[?1003l\033[?1005l\033[?1006l\033[?1015l\033[?1004l'
+}
+alias fixterm='_reset_term_modes'
+case ";${PROMPT_COMMAND};" in
+  *";_reset_term_modes;"*) ;;
+  *) PROMPT_COMMAND="_reset_term_modes;${PROMPT_COMMAND}" ;;
+esac
