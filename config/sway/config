@@ -18,7 +18,10 @@ set $winmenu rofi -show window
 exec_always dex --autostart --environment sway
 
 # Monitor layout persistence (reads ~/.config/kanshi/config)
-exec_always pkill -x kanshi; kanshi
+# Disabled on phantom: config.d/outputs.conf sets the two DisplayLink outputs
+# statically and says kanshi must not run here. Re-enable (quoted, as below) on
+# hosts that do want kanshi.
+# exec_always "pkill -x kanshi; kanshi"
 
 # Failsafe: if a monitor combo has no kanshi profile and sway stacks outputs at
 # 0,0, spread them left-to-right instead of leaving them overlapping.
@@ -30,8 +33,10 @@ exec_always mako
 
 # --- Screen lock / idle ---
 # Locks after 10 min idle
-exec_always pkill -x swayidle; swayidle -w \
-  timeout 600 '~/.config/sway/scripts/lock.sh'
+# Quoted as one argument: sway's parser treats an unquoted `;` as a config
+# command separator, so without the quotes it only ran the pkill and then
+# errored on `swayidle` as an unknown command.
+exec_always "pkill -x swayidle; swayidle -w timeout 600 '~/.config/sway/scripts/lock.sh'"
 
 # Pol-kit auth (script resolves the distro-specific agent path)
 exec_always ~/.config/sway/scripts/polkit-agent.sh
@@ -242,7 +247,9 @@ bindsym $mod+r mode "resize"
 # --- Dual Bar Setup ---
 # Top bar: System monitoring (workspaces, cpu, memory, gpu, temps, disk)
 # Bottom bar: Controls (wifi, bluetooth, brightness, volume, battery, clock, tray)
-exec_always pkill -x waybar; waybar --config ~/.config/waybar/config-top & waybar --config ~/.config/waybar/config-bottom &
+# Quoted for the same reason as the swayidle line above — unquoted, neither bar
+# ever started.
+exec_always "pkill -x waybar; waybar --config ~/.config/waybar/config-top & waybar --config ~/.config/waybar/config-bottom &"
 
 # --- Host-specific overrides (keep last so they win) ---
 # Per-machine config lives in ~/.config/sway/config.d/ — e.g. static `output`

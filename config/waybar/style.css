@@ -215,6 +215,13 @@ window#waybar.bottom #custom-bluetooth.connected {
   background: rgba(137, 220, 235, 0.15);
 }
 
+/* Powered down, or no controller on this host (phantom): dim it so an
+   inactive radio does not read like a live one. */
+window#waybar.bottom #custom-bluetooth.off,
+window#waybar.bottom #custom-bluetooth.unavailable {
+  color: #6c7086;
+}
+
 /* System Tray - for Slack, 1Password, etc. */
 window#waybar.bottom #tray {
   padding: 0 10px;
