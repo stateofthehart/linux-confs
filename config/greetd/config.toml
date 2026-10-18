@@ -1,0 +1,8 @@
+[terminal]
+vt = 1
+
+[default_session]
+command = "/etc/greetd/tuigreet-with-quotes.sh"
+user = "greeter"
+
+[environment]

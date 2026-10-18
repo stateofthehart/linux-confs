@@ -1,5 +1,11 @@
 #%PAM-1.0
 # Swaylock PAM - password OR fingerprint (both work independently)
+# Place this file at /etc/pam.d/swaylock
+#
+# How it works:
+# - Type password + Enter → unlocks immediately
+# - Press Enter (blank), then use fingerprint → unlocks
+# - Either method works independently!
 
 # Try password first (with likeauth to allow fallback)
 auth       sufficient   pam_unix.so try_first_pass likeauth nullok

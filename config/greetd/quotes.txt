@@ -1,0 +1,104 @@
+Talk is cheap. Show me the code. - Linus Torvalds
+Programs must be written for people to read. - Harold Abelson
+Simplicity is the ultimate sophistication. - Leonardo da Vinci
+Any sufficiently advanced technology is indistinguishable from magic. - Arthur C. Clarke
+First, solve the problem. Then, write the code. - John Johnson
+Experience is the name everyone gives to their mistakes. - Oscar Wilde
+Code is like humor. When you have to explain it, it's bad. - Cory House
+Fix the cause, not the symptom. - Steve Maguire
+Make it work, make it right, make it fast. - Kent Beck
+Before software can be reusable it first has to be usable. - Ralph Johnson
+It's not a bug, it's a feature. - Anonymous
+Software is eating the world. - Marc Andreessen
+The best way to predict the future is to invent it. - Alan Kay
+Debugging is twice as hard as writing the code. - Brian Kernighan
+Knowledge is power. - Francis Bacon
+Stay hungry, stay foolish. - Steve Jobs
+Stay hungry. Stay foolish. - Steve Jobs
+A user interface is like a joke. If you have to explain it, it's not that good. - Martin LeBlanc
+The only way to do great work is to love what you do. - Steve Jobs
+The most damaging phrase in the language is 'It's always been done this way.' - Grace Hopper
+The only truly secure system is one that is powered off. - Gene Spafford
+Software is a great combination of artistry and engineering. - Bill Gates
+Measuring programming progress by lines of code is like measuring aircraft building progress by weight. - Bill Gates
+Programming isn't about what you know; it's about what you can figure out. - Chris Pine
+The art of debugging is figuring out what you really told your computer to do. - Andrew Singer
+A good programmer is someone who always looks both ways before crossing a one-way street. - Doug Linder
+To understand recursion, one must first understand recursion. - Anonymous
+There are two ways of constructing a software design. One way is to make it so simple that there are obviously no deficiencies. - C.A.R. Hoare
+Optimism is an occupational hazard of programming: feedback is the treatment. - Kent Beck
+One of my most productive days was throwing away 1000 lines of code. - Ken Thompson
+Deleted code is debugged code. - Jeff Sickel
+It's not a bug - it's an undocumented feature. - Anonymous
+Life is too short to run proprietary software. - Bdale Garbee
+UNIX is basically a simple operating system, but you have to be a genius to understand the simplicity. - Dennis Ritchie
+Linux is only free if your time has no value. - Jamie Zawinski
+There's an old story about the person who wished his computer were as easy to use as his telephone. - Bjarne Stroustrup
+On two occasions I have been asked, 'Pray, Mr. Babbage, if you put into the machine wrong figures, will the right answers come out?' - Charles Babbage
+Computers are good at following instructions, but not at reading your mind. - Donald Knuth
+The trouble with programmers is that you can never tell what a programmer is doing until it's too late. - Seymour Cray
+If debugging is the process of removing software bugs, then programming must be the process of putting them in. - Edsger Dijkstra
+In software, the most beautiful code, the most beautiful functions, and the most beautiful programs are sometimes not there at all. - Jon Bentley
+Simple things should be simple, complex things should be possible. - Alan Kay
+The most important property of a program is whether it accomplishes the intention of its user. - C.A.R. Hoare
+A program is like a poem: you cannot write a poem without writing it. - E.W. Dijkstra
+The best error message is the one that never shows up. - Thomas Fuchs
+Hardware eventually fails. Software eventually works. - Michael Hartung
+Technology is anything that wasn't around when you were born. - Alan Kay
+If you think your users are idiots, only idiots will use it. - Linus Torvalds
+The greatest enemy of knowledge is not ignorance, it is the illusion of knowledge. - Stephen Hawking
+The most disastrous thing that you can ever learn is your first programming language. - Alan Kay
+Controlling complexity is the essence of computer programming. - Brian Kernighan
+The computer was born to solve problems that did not exist before. - Bill Gates
+Code never lies, comments sometimes do. - Ron Jeffries
+A good programmer looks both ways before crossing a one-way street. - Doug Linder
+Good code is its own best documentation. - Steve McConnell
+Without requirements or design, programming is the art of adding bugs to an empty text file. - Louis Srygley
+There is no programming language, no matter how structured, that will prevent programmers from making bad programs. - Larry Flon
+The sooner you start to code, the longer the program will take. - Roy Carlson
+Think twice, code once. - Anonymous
+One man's crappy software is another man's full time job. - Jessica Gaston
+A good way to stay flexible is to write less code. - Pragmatic Programmer
+You can't have great software without a great team. - Jim McCarthy
+The cost of adding a feature isn't just the time it takes to code it. - Joel Spolsky
+Good software, like wine, takes time. - Joel Spolsky
+Weeks of programming can save you hours of planning. - Anonymous
+Nine people can't make a baby in a month. - Fred Brooks
+Adding manpower to a late software project makes it later. - Fred Brooks
+You can't control what you can't measure. - Tom DeMarco
+Everything should be made as simple as possible, but no simpler. - Albert Einstein
+The only constant in the technology industry is change. - Marc Benioff
+The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt
+Innovation distinguishes between a leader and a follower. - Steve Jobs
+Simplicity is prerequisite for reliability. - Edsger Dijkstra
+Correctness is clearly the prime quality. - Bertrand Meyer
+Premature optimization is the root of all evil. - Donald Knuth
+Code is poetry. - WordPress
+Software is like entropy: It is difficult to grasp, weighs nothing, and obeys the Second Law of Thermodynamics. - Norman Augustine
+Real programmers can write assembly code in any language. - Larry Wall
+Perl is the Swiss Army chainsaw of scripting languages. - Hubris
+Small minds are concerned with the extraordinary, great minds with the ordinary. - Blaise Pascal
+Beauty is more important in computing than anywhere else in technology. - David Gelernter
+Every great developer you know got there by solving problems they were unqualified to solve. - Patrick McKenzie
+A language that doesn't affect the way you think about programming is not worth knowing. - Alan Perlis
+The computer is incredibly fast, accurate, and stupid. Man is unbelievably slow, inaccurate, and brilliant. - Leo Cherne
+Purity is good, but practicality is better. - Larry Wall
+Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live. - Rick Osborne
+Give someone a program, you frustrate them for a day; teach them how to program, you frustrate them for a lifetime. - David Leinweber
+We are stuck with technology when what we really want is just stuff that works. - Douglas Adams
+The real problem is not whether machines think but whether men do. - B.F. Skinner
+Computers are useless. They can only give you answers. - Pablo Picasso
+If you don't handle [exceptions], we shut your application down. - Anders Hejlsberg
+Don't worry if it doesn't work right. If everything did, you'd be out of a job. - Mosher's Law of Software Engineering
+The next best thing to having good ideas is recognizing good ideas from your users. - Eric S. Raymond
+Hackers are innovators, they question everything. - Emmanuel Goldstein
+Information wants to be free. - Stewart Brand
+The network is the computer. - John Gage
+Data is the new oil. - Clive Humby
+Open source is about collaborating; not competing. - Kelsey Hightower
+With enough eyeballs, all bugs are shallow. - Linus's Law
+Free software is a matter of liberty, not price. - Richard Stallman
+Software is like sex: it's better when it's free. - Linus Torvalds
+In the end, it's all just ones and zeros. - Anonymous
+The only way to learn a new programming language is by writing programs in it. - Dennis Ritchie
+Good artists copy, great artists steal. - Pablo Picasso
