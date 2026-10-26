@@ -1,36 +1,86 @@
 # kanshi — auto-applies monitor arrangements when outputs connect/disconnect.
-# Profiles match on the set of currently-connected outputs.
+# A profile fires only when its output set EXACTLY matches the connected set.
 #
-# Limitation: both externals are XEC ES-G27C1Q with serial "Unknown", so kanshi
-# can't distinguish them by EDID. We match by connector name (DVI-I-1/DVI-I-2),
-# but those names depend on dock USB enumeration and can shift across reconnects.
-# If after a reconnect the externals appear swapped left/right, run wdisplays
-# once to re-arrange and re-capture with:
-#   swaymsg -t get_outputs | jq -r '.[] | "    output \(.name) mode \(.current_mode.width)x\(.current_mode.height) position \(.rect.x),\(.rect.y) scale \(.scale)"'
+# MATCHING STRATEGY
+# The three externals are identical DELL S2725QC panels, so they are matched by
+# EDID ("make model serial") rather than by connector name. DisplayLink assigns
+# DVI-I-N names in whatever order the dock enumerates, which is why the old
+# config needed a duplicate "swapped" profile. Serials are stable, so each panel
+# keeps its spot no matter which connector it lands on:
+#     left   = 5NC8S84
+#     middle = JKZG464
+#     right  = 9ZK7S84
+# The built-in panel reports serial "Unknown", so it is matched by name (eDP-1),
+# which is stable for an internal display anyway.
+#
+# WHY wdisplays CHANGES DON'T STICK
+# wdisplays applies layout live over wlr-output-management-v1 and writes nothing
+# to disk. `swaymsg reload` re-runs `exec_always pkill -x kanshi; kanshi`
+# (~/.config/sway/config line 18), restarting kanshi so it re-asserts whichever
+# profile matches. To make a layout permanent, capture it into THIS file.
+#
+# RE-CAPTURE a layout after rearranging in wdisplays:
+#   swaymsg -t get_outputs | jq -r '.[] | select(.active) |
+#     "    output \"\(.make) \(.model) \(.serial)\" mode \(.current_mode.width)x\(.current_mode.height) position \(.rect.x),\(.rect.y) scale \(.scale)"'
+#
+# Reload kanshi without a full sway reload:
+#   pkill -x kanshi; kanshi &
 
-# Docked: two externals across the top, laptop centered below.
+
+# ── Docked: three 27" Dells side by side, laptop to their right ──────────────
+# Captured live 2026-10-07. Panels are 4K-capable (3840x2160) but currently
+# driven at 2560x1440; see the commented 4K variant below to switch.
 profile docked {
-    output DVI-I-1 mode 2560x1440 position 0,0       scale 1.2
-    output DVI-I-2 mode 2560x1440 position 2134,0    scale 1.2
-    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+    output "Dell Inc. DELL S2725QC 5NC8S84" mode 2560x1440 position 0,0      scale 1
+    output "Dell Inc. DELL S2725QC JKZG464" mode 2560x1440 position 2560,0   scale 1
+    output "Dell Inc. DELL S2725QC 9ZK7S84" mode 2560x1440 position 5120,0   scale 1
+    output eDP-1                            mode 1920x1080 position 7680,360 scale 1
 }
 
-# Same physical layout but with the externals' connector names swapped — applies
-# automatically if the dock comes up with the names reversed.
-profile docked-swapped {
-    output DVI-I-2 mode 2560x1440 position 0,0       scale 1.2
-    output DVI-I-1 mode 2560x1440 position 2134,0    scale 1.2
-    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+# Same arrangement at the panels' native 4K. Swap with the profile above by
+# renaming this one to `docked` (two profiles may not share a name).
+#profile docked-4k {
+#    output "Dell Inc. DELL S2725QC 5NC8S84" mode 3840x2160 position 0,0       scale 1.5
+#    output "Dell Inc. DELL S2725QC JKZG464" mode 3840x2160 position 2560,0    scale 1.5
+#    output "Dell Inc. DELL S2725QC 9ZK7S84" mode 3840x2160 position 5120,0    scale 1.5
+#    output eDP-1                            mode 1920x1080 position 7680,360  scale 1
+#}
+
+
+# ── Fallback: DisplayLink down, only the native DP head + laptop ─────────────
+# Matches by CONNECTOR NAME on purpose: this fires when evdi/DisplayLinkManager
+# isn't running (e.g. an evdi DKMS build failure after a kernel upgrade), and
+# whichever Dell happens to be on the native port should work. Positions are
+# chosen, not captured — laptop left, external right.
+profile native-only {
+    output eDP-1 mode 1920x1080 position 0,0    scale 1
+    output DP-1  mode 2560x1440 position 1920,0 scale 1
 }
 
-# Laptop + a single HiDPI external on DisplayPort (e.g. RTK HG560T34, 3840x2400).
-# Laptop left, external right. Swap sides with wdisplays if you prefer.
-profile single-external-dp2 {
-    output eDP-1 mode 1920x1080 position 0,0    scale 1.0
-    output DP-2  mode 3840x2400 position 1920,0 scale 2.0
-}
-
-# Undocked: laptop only.
+# ── Undocked: laptop only ────────────────────────────────────────────────────
 profile undocked {
-    output eDP-1 mode 1920x1080 position 0,0 scale 1.0
+    output eDP-1 mode 1920x1080 position 0,0 scale 1
 }
+
+
+# ── LEGACY (kept, not active) ────────────────────────────────────────────────
+# Superseded 2026-10-07. These describe hardware no longer in use: two XEC
+# ES-G27C1Q externals (serial "Unknown", hence the connector-name matching and
+# the duplicate swapped profile) and an RTK HG560T34 on DP-2. Left here rather
+# than deleted in case either monitor comes back; uncomment to restore. Note the
+# DVI-I-N profiles below would conflict with the EDID-matched `docked` above.
+#
+#profile docked-xec {
+#    output DVI-I-1 mode 2560x1440 position 0,0       scale 1.2
+#    output DVI-I-2 mode 2560x1440 position 2134,0    scale 1.2
+#    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+#}
+#profile docked-xec-swapped {
+#    output DVI-I-2 mode 2560x1440 position 0,0       scale 1.2
+#    output DVI-I-1 mode 2560x1440 position 2134,0    scale 1.2
+#    output eDP-1   mode 1920x1080 position 1200,1200 scale 1.0
+#}
+#profile single-external-dp2 {
+#    output eDP-1 mode 1920x1080 position 0,0    scale 1.0
+#    output DP-2  mode 3840x2400 position 1920,0 scale 2.0
+#}
