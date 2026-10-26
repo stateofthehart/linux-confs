@@ -163,6 +163,12 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # `google-chrome-stable`) fails in an interactive non-login shell.
 export PATH="$PATH:/var/lib/flatpak/exports/bin"
 
+# Snap launchers. Ubuntu's /etc/profile.d/apps-bin-path.sh adds this, but the
+# "Basic PATH" assignment above overwrites PATH wholesale and drops it, so every
+# snap goes missing from interactive shells. Re-add it here. Harmless on hosts
+# without snapd -- a non-existent PATH entry costs one failed stat per lookup.
+export PATH="$PATH:/snap/bin"
+
 # === stale terminal mode cleanup ===
 # Stale terminal modes: remote TUIs (claude, nvim, htop) turn on xterm mouse
 # reporting for the tmux pane. If the ssh session dies without exiting cleanly
