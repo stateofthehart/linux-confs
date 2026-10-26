@@ -37,6 +37,14 @@ PACKAGES_ARCH=(
 
   # Nerd Font (waybar/kitty glyphs)
   ttf-jetbrains-mono-nerd
+
+  # Keeps the RUNNING kernel's /lib/modules tree alive across a kernel
+  # upgrade. Without it, `pacman -Syu` deletes the modules of the kernel you
+  # are still booted on, and anything not already loaded -- evdi, in
+  # particular -- can no longer be modprobe'd until you reboot. Arch-only;
+  # Debian and Fedora keep old kernel versions installed side by side. See
+  # PORTING.md, "Out-of-tree kernel modules on a rolling distro".
+  kernel-modules-hook
 )
 
 # Ubuntu 24.04 package names (verified against noble on 2026-07-24).
@@ -456,6 +464,37 @@ post_install() {
   fi
 }
 
+# ------------------------------------------------- DisplayLink PM FIFOs
+
+# DisplayLink's suspend hook (/usr/lib/systemd/system-sleep/displaylink.sh)
+# talks to DisplayLinkManager over /tmp/PmMessagesPort_{in,out}. On undock,
+# udev stops the service and systemd SIGKILLs it, so those FIFOs are left
+# behind with no reader -- and open() on a peerless FIFO blocks forever. The
+# hook then hangs until systemd's 90s limit, with user.slice FROZEN the whole
+# time, once before suspend and once after resume. That is the "laptop is dead
+# for two minutes when I open the lid" symptom (measured on wraith 2026-10-08:
+# 90.02s vs 0.02s). The drop-in removes the FIFOs on both stop and start.
+#
+# Copied into /etc rather than symlinked from the repo: systemd reads this as
+# root during early boot and on udev events, when $HOME may not be mounted.
+install_displaylink_dropin() {
+  local src="$REPO/systemd/system/displaylink.service.d/pm-fifo-cleanup.conf"
+  local dst="/etc/systemd/system/displaylink.service.d/pm-fifo-cleanup.conf"
+  [[ -f "$src" ]] || return 0
+  if ! systemctl cat displaylink.service >/dev/null 2>&1; then
+    echo "==> DisplayLink drop-in: skipped (no displaylink.service here)"
+    return 0
+  fi
+  echo "==> DisplayLink suspend/resume drop-in..."
+  if cmp -s "$src" "$dst" 2>/dev/null; then
+    echo "  ok:     $dst"
+    return 0
+  fi
+  sudo install -Dm644 "$src" "$dst"
+  sudo systemctl daemon-reload
+  echo "  install: $dst (+ daemon-reload)"
+}
+
 enable_user_services() {
   echo "==> Enabling systemd --user units..."
   # gnome-keyring's secret service is socket-activated; enabling the socket
@@ -499,6 +538,7 @@ main() {
   install_asoc_topology
   install_ucm_mic_override
   post_install
+  install_displaylink_dropin
   enable_user_services
   echo "==> Validating sway config..."
   # --unsupported-gpu: proprietary-NVIDIA hosts refuse to start without it.

@@ -216,6 +216,52 @@ PY
   rm -f "$capwav"
 fi
 
+echo "==> kernel modules: DKMS built for the RUNNING kernel"
+# Why this exists: wraith lost its DisplayLink monitors three times in eleven
+# days (2026-10-06, -12, -16) and each one read as a different mystery. They
+# were all the same thing -- a kernel package upgrade had deleted
+# /lib/modules/$(uname -r) and/or rebuilt the out-of-tree modules for the NEW
+# kernel only, so `modprobe evdi` could no longer find anything to load. A
+# pkgrel-only bump (6.18.55-1 -> -2) does it just as thoroughly as a version
+# bump. Nothing in the desktop reports this: the first symptom is dark screens
+# on the next undock, hours after the pacman run that caused it, and
+# 70-dkms-install.hook is non-fatal so even a failed BUILD leaves the upgrade
+# looking successful. Ask the one question that covers all of it -- does the
+# kernel you are running still have modules to load?
+
+# dkms 3.x prints "mod/ver, kernel, arch: state"; dkms 2.x printed
+# "mod, ver, kernel, arch: state". Normalize to the 3.x form so one pattern
+# works on Arch, Ubuntu and Fedora alike.
+dkms_norm() { dkms status 2>/dev/null | sed -E 's|^([^,/]+), ([^,]+), |\1/\2, |'; }
+
+kver="$(uname -r)"
+if [[ -d "/lib/modules/$kver" ]]; then
+  pass "module tree present for running kernel ($kver)"
+  tree_ok=1
+else
+  fail "/lib/modules/$kver is GONE — kernel upgraded without a reboot; modprobe can load nothing"
+  tree_ok=0
+fi
+
+if ! command -v dkms >/dev/null 2>&1; then
+  pass "no dkms on this host (nothing out-of-tree to go stale)"
+elif [[ -z "$(dkms_norm)" ]]; then
+  pass "dkms present, no modules registered"
+else
+  while IFS= read -r modver; do
+    [[ -z "$modver" ]] && continue
+    if dkms_norm | grep -q "^$modver, $kver,.*: installed"; then
+      pass "dkms $modver built for $kver"
+    elif (( tree_ok )); then
+      # kernel-modules-hook (PACKAGES_ARCH) preserved the old tree, so the
+      # already-built module still loads. Working, but only until reboot.
+      warn "dkms $modver not built for running $kver — reboot pending; the preserved module tree is carrying this"
+    else
+      fail "dkms $modver NOT built for running kernel $kver — this module cannot load"
+    fi
+  done < <(dkms_norm | awk -F', ' '{print $1}' | sort -u)
+fi
+
 echo "==> Nerd Font available to waybar"
 nerd_count="$(fc-list 2>/dev/null | grep -ci 'nerd font' || true)"
 if [[ "${nerd_count:-0}" -gt 0 ]]; then

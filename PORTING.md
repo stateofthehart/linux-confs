@@ -150,13 +150,67 @@ the bar per-host.
   sway as before.
 - phantom's two monitors report identical EDID (XEC 4433, serial "Unknown"):
   they can only be matched by connector name (`DVI-I-1`/`DVI-I-2`), never by
-  `output "Make Model Serial"`. Same is true of wraith's dock monitors —
-  hence the docked/docked-swapped kanshi profile pair.
+  `output "Make Model Serial"`. That is a last resort, not the default —
+  DisplayLink hands out `DVI-I-N` names in dock enumeration order, so a
+  connector-name profile needs a duplicate "swapped" twin to survive a
+  reconnect. Prefer EDID matching wherever the panels carry real serials:
+  wraith's three Dell S2725QCs do, and its kanshi config was moved onto
+  serials on 2026-10-07, which retired that host's swapped-profile pair.
+- DisplayLink's suspend hook freezes the whole user session for 90 seconds
+  per suspend AND per resume if `/tmp/PmMessagesPort_{in,out}` outlive the
+  daemon — which they do on every undock, because udev stops the service and
+  systemd SIGKILLs it. `install.sh` installs
+  `systemd/system/displaylink.service.d/pm-fifo-cleanup.conf` to clear them
+  on both stop and start. Symptom without it: the laptop appears hard-frozen
+  for ~2 minutes when you open the lid.
 - Prefer the monitor's preferred mode (60 Hz) first; high-refresh over
   USB/evdi is a bandwidth gamble to try later.
 - `sway/scripts/output-catchall.sh` is the failsafe when no layout matches:
   it only acts when two active outputs physically overlap (the stacked-at-0,0
   signature), so it never fights kanshi or the static config.d outputs.
+
+## Out-of-tree kernel modules on a rolling distro (Arch/CachyOS + DKMS)
+
+This cost wraith three multi-hour outages in eleven days (2026-10-06, -12,
+-16), each presenting as a different "my monitors stopped working" mystery.
+Read this before provisioning any Arch box that needs DKMS — DisplayLink/evdi,
+VirtualBox, ZFS, nvidia-dkms.
+
+- A kernel package upgrade **deletes `/lib/modules/$(uname -r)`** out from
+  under the kernel you are still running. Anything not already loaded becomes
+  unloadable until you reboot, so `modprobe evdi` fails and the DisplayLink
+  heads never come back on the next redock.
+- A **pkgrel-only** bump does this too: `6.18.55-1` → `6.18.55-2` is the same
+  upstream kernel, but it is a different module directory, and that is enough.
+- DKMS rebuilds for the NEW kernel, not the one you are running. And
+  `70-dkms-install.hook` is a PostTransaction hook that is **non-fatal** — a
+  failed build scrolls past in the pacman output and the upgrade still reports
+  success.
+- Out-of-tree modules can also simply stop compiling. Linux has no stable
+  in-kernel API, so this is expected, not a bug: evdi 1.14.16 would not build
+  on 7.x because `drm_atomic_get_old_plane_state()` and the plane
+  `atomic_update` hook changed signature. Fixed upstream in evdi 1.15.1; until
+  that shipped, the only recourse was booting an LTS kernel.
+
+**What this repo does about it**
+
+- `kernel-modules-hook` is in `PACKAGES_ARCH`. It stashes the running kernel's
+  module tree before the upgrade removes it and restores it afterward, so
+  `modprobe` keeps working until you choose to reboot. Nothing about it is
+  DisplayLink-specific — every Arch host wants it. Not needed on
+  Debian/Ubuntu or Fedora, which keep old kernel versions installed side by
+  side.
+- `tools/doctor.sh` checks that `/lib/modules/$(uname -r)` exists and that
+  every DKMS module is built for the kernel actually running. That single
+  check would have caught all three outages days before the monitors did.
+
+**If you are already broken** (module tree gone, or the build failed): boot
+the LTS kernel from the bootloader menu and rebuild there —
+`sudo dkms install evdi/<ver> -k $(uname -r)`. On systemd-boot, beware that
+**entry ids include the `.conf` suffix**: `default linux-cachyos-lts` in
+`/boot/loader/loader.conf` matches no entry and silently falls back to the
+first one by sort order. It must read `default linux-cachyos-lts.conf`.
+Confirm with `bootctl list` rather than assuming the write took effect.
 
 ## New-host checklist
 

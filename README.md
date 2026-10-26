@@ -24,7 +24,10 @@ config/               mirrors ~/.config — linked whole-dir by install.sh
 home/                 ~/.bash_profile  ~/.bashrc  ~/.xonshrc
 hosts/<hostname>/     per-host monitor topology — see hosts/README.md
 systemd/user/         bt-a2dp-watchdog.service (enabled only if BT hardware)
+systemd/system/       displaylink.service.d/ drop-in (copied to /etc on
+                      DisplayLink hosts; stops the 90s suspend/resume freeze)
 tools/foot-theme.py   foot theme switcher/previewer
+tools/doctor.sh       health check: do the configs' references actually exist
 legacy/i3/            pre-sway i3 config, kept for reference
 install.sh            provision this machine (packages + symlinks + services)
 cli-install.sh        managed shell block for remote hosts (see below)
