@@ -183,3 +183,7 @@ case ";${PROMPT_COMMAND};" in
   *";_reset_term_modes;"*) ;;
   *) PROMPT_COMMAND="_reset_term_modes;${PROMPT_COMMAND}" ;;
 esac
+# >>> claude-shim >>>
+# Managed by claude-shim/install.sh. Keep this block last so the shim stays ahead of the real claude.
+export PATH="/home/ethan/.local/share/claude-shim/bin:$PATH"
+# <<< claude-shim <<<
