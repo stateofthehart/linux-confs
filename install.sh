@@ -524,6 +524,30 @@ enable_user_services() {
       echo "  masked vendor unit: $u (sway config exec_always owns it)"
     fi
   done
+
+  # Debian/Ubuntu patch gpg-agent-ssh.socket to inject SSH_AUTH_SOCK into the
+  # systemd --user environment the instant the socket starts:
+  #
+  #   ExecStartPost=systemctl --user set-environment SSH_AUTH_SOCK="%t/gnupg/S.gpg-agent.ssh"
+  #
+  # Every session process launched after that inherits it, so ssh-add lands on
+  # gpg-agent instead of ssh-agent. gpg-agent does not hold ssh keys in RAM --
+  # it imports them into the always-encrypted ~/.gnupg/private-keys-v1.d, so
+  # pinentry demands a passphrase to ENCRYPT a key that has none on disk. Bit
+  # phantom on 2026-11-08 (the .bashrc ssh-add of farmgpu-shared-team prompted
+  # on every new shell).
+  #
+  # Upstream's units carry no such lines, which is why only the Ubuntu box ever
+  # saw this -- so match on the line, not the filename, and stay a no-op on
+  # Arch/Fedora. Plain gpg-agent.socket is left enabled; only ssh emulation goes.
+  local gpgssh="/usr/lib/systemd/user/gpg-agent-ssh.socket"
+  if [[ -e "$gpgssh" ]] && grep -q "set-environment SSH_AUTH_SOCK" "$gpgssh"; then
+    systemctl --user stop gpg-agent-ssh.socket 2>/dev/null || true
+    systemctl --user mask --quiet gpg-agent-ssh.socket 2>/dev/null || true
+    echo "  masked vendor unit: gpg-agent-ssh.socket (it hijacks SSH_AUTH_SOCK)"
+  else
+    echo "  gpg-agent-ssh.socket: no SSH_AUTH_SOCK injection, left alone"
+  fi
 }
 
 main() {
