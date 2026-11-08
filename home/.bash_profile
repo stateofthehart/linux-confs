@@ -2,6 +2,13 @@
 # ~/.bash_profile
 #
 
+# Guarantee a UTF-8 locale. Not every login path supplies one: a tmux pane
+# inherits the tmux server's environment, and a server started before LANG
+# was set hands out an empty one. ncurses then sees an ASCII codeset and
+# draws +--| instead of box-drawing glyphs. No-op when LANG is already set.
+: "${LANG:=en_US.UTF-8}"
+export LANG
+
 [[ -f ~/.bashrc ]] && . ~/.bashrc
 
 # Auto-start sway on tty1 login.
